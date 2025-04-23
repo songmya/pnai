@@ -16,7 +16,9 @@ import {
     addCopyButtonsToCodeBlocks, // 导入添加代码块复制按钮函数
     updateThemeToggleButton, // 导入更新主题切换按钮文本函数
     openSidebar, // 导入打开侧边栏函数
-    closeSidebar // 导入关闭侧边栏函数
+    closeSidebar, // 导入关闭侧边栏函数
+    updateVoiceSelectUI, // 导入更新语音选择 UI 的函数
+    updateVoiceSelectVisibility // 导入更新语音选择可见性的函数
 } from './ui.js';
 // 导入 api.js 中的函数
 import { fetchModels, callAIApi, callTxt2ImgApi, callTxt2AudioApi } from './api.js';
@@ -29,18 +31,17 @@ let chats = {}; // { chatId: { name: '', messages: [], systemPrompt: '', model: 
 let availableModels = []; // 存储从API获取的可用模型列表
 let currentTheme = 'light'; // 默认主题是白天
 
-// ** 定义默认系统提示词 **
+// 定义默认系统提示词
 const DEFAULT_SYSTEM_PROMPT = "你是一个entp性格的机器人助手，要以entp性格的语气回答问题";
-// ** 定义主题存储键 **
+// 定义主题存储键
 const THEME_STORAGE_KEY = 'aiChatAppTheme';
-// ** 定义侧边栏状态存储键 (可选，用于记住上次打开/关闭状态) **
-// const SIDEBAR_STATE_STORAGE_KEY = 'aiChatAppSidebarState'; // 暂时不实现状态记忆，默认小屏幕关闭，大屏幕打开
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     // 0. 加载并应用保存的主题
     loadAndApplyTheme();
 
-     // ** 监听窗口大小改变事件，以便在切换桌面/移动视图时调整侧边栏状态和按钮显示 **
+     // 监听窗口大小改变事件，以便在切换桌面/移动视图时调整侧边栏状态和按钮显示
      window.addEventListener('resize', handleWindowResize);
      // 在初始加载时也调用一次，根据当前窗口大小设置初始侧边栏状态
      handleWindowResize();
@@ -53,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. 加载保存的聊天数据
     chats = loadChatData();
 
-    // ** 检查是否有保存的聊天，如果没有则创建默认聊天 **
+    // 检查是否有保存的聊天，如果没有则创建默认聊天
     if (Object.keys(chats).length === 0) {
         console.log("No saved chats found. Creating a default chat.");
         // 创建一个名为“默认聊天”的新会话，并设置默认系统提示词
@@ -70,7 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
              chatIds.sort((a, b) => b.localeCompare(a)); // 假设 ID 是递增的或包含时间戳
              targetChatId = chatIds[0];
         }
-         // ** 切换到目标聊天并确保设置默认系统提示词（如果聊天中没有的话） **
+         // 切换到目标聊天并确保设置默认系统提示词（如果聊天中没有的话）
          if (targetChatId) {
              // 如果加载的聊天没有 systemPrompt 字段，为其设置默认值
              if (chats[targetChatId].systemPrompt === undefined || chats[targetChatId].systemPrompt === null || chats[targetChatId].systemPrompt.trim() === '') {
@@ -78,6 +79,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                   chats[targetChatId].systemPrompt = DEFAULT_SYSTEM_PROMPT;
                   saveChatData(chats); // 保存更新后的数据
              }
+              // 确保 uploadedFiles 字段存在且是数组
+             if (!chats[targetChatId].uploadedFiles || !Array.isArray(chats[targetChatId].uploadedFiles)) {
+                  chats[targetChatId].uploadedFiles = [];
+                  saveChatData(chats); // 保存更新后的数据
+             }
+
              switchChat(targetChatId);
          } else {
               // 如果没有任何聊天可加载，创建一个默认聊天
@@ -90,7 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. 初始化 UI 事件监听 (在 ui.js 中实现，这里只需调用)
     initializeUI();
 
-    // ** 4. 绑定新建聊天按钮事件 (已在 initializeUI 中或 DOMContentLoaded 中直接绑定) **
+    // 4. 绑定新建聊天按钮事件
     const newChatBtn = document.getElementById('new-chat-btn');
     if(newChatBtn) {
          // 修改新建聊天按钮事件，使其创建时使用默认系统提示词
@@ -101,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // ** 5. 绑定侧边栏聊天列表点击事件 (包含切换和删除) **
+    // 5. 绑定侧边栏聊天列表点击事件 (包含切换和删除)
     // 使用事件委托处理列表项点击和删除按钮点击
     const chatListElement = document.getElementById('chat-list');
     if (chatListElement) {
@@ -129,7 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // ** 6. 绑定设置区域（模型选择、系统提示词、语音选择）的 change/input 事件 **
+    // 6. 绑定设置区域（模型选择、系统提示词、语音选择）的 change/input 事件
     const modelSelectElement = document.getElementById('model-select');
     const systemPromptElement = document.getElementById('system-prompt');
     const voiceSelectElement = document.getElementById('voice-select');
@@ -179,7 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
          updateVoiceSelectVisibility(chats[currentChatId].model);
      }
 
-     // ** 7. 绑定生成图片按钮事件 **
+     // 7. 绑定生成图片按钮事件
      const generateImageBtn = document.getElementById('generate-image-btn');
      if (generateImageBtn) {
          generateImageBtn.addEventListener('click', generateImage);
@@ -188,19 +195,18 @@ document.addEventListener('DOMContentLoaded', async () => {
          console.error("Generate image button with ID 'generate-image-btn' not found.");
      }
 
-      // ** 8. 绑定清除上下文按钮事件 (已在 initializeUI 中处理) **
+      // 8. 绑定清除上下文按钮事件 (已在 initializeUI 中处理)
 
-     // ** 9. 主题切换按钮事件 (已在 initializeUI 中处理) **
+     // 9. 主题切换按钮事件 (已在 initializeUI 中处理)
 
-     // ** 10. 监听文件列表更新的自定义事件，以便在文件添加/移除时保存数据 **
+     // 10. 监听文件列表更新的自定义事件，以便在文件添加/移除时保存数据
      document.addEventListener('filesUpdated', (event) => {
          console.log("Received filesUpdated event:", event.detail);
          // 确保事件携带了有效的 chatId 和 files
          if (event.detail && event.detail.chatId && chats[event.detail.chatId]) {
-              // event.detail.files 包含了最新的文件列表（可能不包含 File 对象本身，只包含 id, name 等）
-              // 在 main.js 中存储的 chats[chatId].uploadedFiles 应该包含完整的 File 对象
-              // 所以这里我们只需要触发保存逻辑，chats 对象已经在 ui.js 的 handleFileUpload/removeUploadedFile 中被修改了
-             saveChatData(chats); // 保存更新后的 chats 对象
+              // event.detail.files 包含了最新的文件列表（包含 File 对象本身）
+              chats[event.detail.chatId].uploadedFiles = event.detail.files; // 更新 chats 中的文件列表
+              saveChatData(chats); // 保存更新后的 chats 对象
          } else {
              console.warn("filesUpdated event received without valid chat data.");
          }
@@ -230,6 +236,8 @@ function handleWindowResize() {
              if(sidebarOpenBtn) sidebarOpenBtn.style.display = 'none';
              if(sidebarToggleBtn) sidebarToggleBtn.style.display = 'flex';
          }
+         // 确保在小屏幕下关闭侧边栏（如果resize时是打开的）
+         // closeSidebar(); // 移除这行，避免resize时强制关闭，让用户控制
      } else {
          // 大屏幕：默认打开侧边栏
          document.body.classList.remove('sidebar-open'); // 移除 body 上的 class，让 CSS 控制宽度
@@ -277,7 +285,7 @@ function applyTheme(theme) {
  * 切换主题 (白天 <-> 黑夜)
  * 这个函数由 UI 按钮点击事件触发
  */
-export function toggleTheme() { // 保持导出，ui.js 调用
+function toggleTheme() { // 保持导出，ui.js 调用
     currentTheme = (currentTheme === 'light') ? 'dark' : 'light';
     applyTheme(currentTheme);
     // 保存用户选择的主题到 localStorage
@@ -310,12 +318,13 @@ function createNewChat(initialName, initialSystemPrompt) {
 
 
     chats[newChatId] = {
+        id: newChatId, // 增加 id 字段，便于存储和查找
         name: chatName,
         messages: [],
         systemPrompt: systemPrompt, // 使用传入或默认的系统提示词
         model: availableModels.length > 0 ? availableModels[0].name : 'openai', // 默认模型
-        voice: 'voice1',
-        uploadedFiles: [] // 新会话的已上传文件列表为空
+        voice: 'voice1', // 默认语音
+        uploadedFiles: [] // 新会话的已上传文件列表为空，存储 { id, name, type, size, file } 对象
     };
 
     currentChatId = newChatId;
@@ -349,7 +358,7 @@ function switchChat(chatId) {
     updateUploadedFilesUI(currentChat.uploadedFiles); // 更新文件上传列表 UI
 
     // 更新设置区域，包括模型、系统提示词、语音选择
-    // ** 切换聊天时，从聊天数据中读取系统提示词并更新 UI **
+    // 切换聊天时，从聊天数据中读取系统提示词并更新 UI
     updateSettingsUI(currentChat.model, currentChat.systemPrompt);
     // populateModelSelect 在 DOMContentLoaded 已经调用，这里不再需要，除非模型列表会动态变化
     // populateModelSelect(availableModels, currentChat.model); // 更新选中模型
@@ -428,7 +437,8 @@ function updateVoiceSelectVisibility(selectedModel) {
     const voiceSelectContainer = document.getElementById('voice-select-container'); // 假设你的 HTML 中有一个容器
     if (voiceSelectContainer) {
         // Pollinations.ai txt2audio 的模型名称是 'openai-audio'
-        if (selectedModel === 'openai-audio') {
+        // TODO: 如果有其他语音模型，需要根据实际模型名称判断
+        if (selectedModel && selectedModel.toLowerCase().includes('audio')) { // 检查模型名称是否包含 'audio'
             voiceSelectContainer.style.display = 'flex'; // 使用 flex 适应布局
         } else {
             voiceSelectContainer.style.display = 'none';
@@ -442,7 +452,7 @@ function updateVoiceSelectVisibility(selectedModel) {
  * 更新语音选择下拉框的选中值
  * @param {string} selectedVoice - 当前选中的语音值
  */
-function updateVoiceSelectUI(selectedVoice) {
+export function updateVoiceSelectUI(selectedVoice) { // 导出此函数，以便 ui.js 可以调用
     const voiceSelectElement = document.getElementById('voice-select');
     if (voiceSelectElement) {
         voiceSelectElement.value = selectedVoice || 'voice1'; // 默认选中 voice1
@@ -454,6 +464,7 @@ function updateVoiceSelectUI(selectedVoice) {
 
 /**
  * 发送消息（用户输入），调用 AI 聊天 API
+ * 支持发送文本和上传的图片。
  */
 async function sendMessage() {
     const userInputElement = document.getElementById('user-input');
@@ -461,10 +472,13 @@ async function sendMessage() {
     const currentChat = chats[currentChatId];
 
     // 获取当前聊天会话的已上传文件，仅用于本次发送
+    // 这里直接从 chats 数据中获取，它应该包含了 { id, name, type, size, file } 对象
     const uploadedFilesForSend = currentChat?.uploadedFiles || [];
 
 
+    // 如果既没有文本输入也没有上传文件，则不发送消息
     if (!messageContent && uploadedFilesForSend.length === 0) {
+        console.log("No text input and no files uploaded. Skipping send.");
         return;
     }
 
@@ -477,18 +491,20 @@ async function sendMessage() {
     const userMessage = {
         sender: 'user',
         content: messageContent,
-        // 在用户消息中记录本次发送的文件信息，实际文件对象不保存在 chats 数据中
-        // 存储的文件信息只包含元数据，不包含 File 对象本身，File 对象仅在本次 API 调用中传递
+        type: 'text', // 用户消息类型默认为文本
+        // 在用户消息中记录本次发送的文件信息元数据，实际文件对象不保存在 messages 数组中
+        // 这个 files 数组用于在 UI 中显示用户发送了哪些文件
         files: uploadedFilesForSend.map(file => ({ name: file.name, type: file.type }))
     };
     currentChat.messages.push(userMessage);
-    addMessageToUI(userMessage, true); // 添加用户消息到 UI
+    // addMessageToUI 现在返回创建的元素，但对于非流式用户消息，我们通常不需要其引用
+    addMessageToUI(userMessage, true); // 添加用户消息到 UI 并滚动
 
     // 清空输入框和文件列表 UI 和数据 (发送后清空)
     userInputElement.value = '';
     currentChat.uploadedFiles = []; // 清空上传的文件数据
     updateUploadedFilesUI([]); // 更新文件列表 UI
-     saveChatData(chats); // 保存清空文件列表后的状态
+    saveChatData(chats); // 保存清空文件列表后的状态
 
 
     // 2. 调用常规聊天 API (/openai)
@@ -501,14 +517,17 @@ async function sendMessage() {
     // 添加一个空的 AI 消息元素到 UI，用于接收流式数据
     const aiMessageElement = addStreamingMessageToUI(); // 假设 ui.js 中有这个函数，返回消息元素
 
+
     try {
          // 调用 AI API (/openai)，传递回调函数处理流
+         // 传递用户输入的文本和上传的文件数组
+         // 传递消息历史 (排除刚刚添加的用户消息，因为 API 会自动将用户消息加入请求 body)
          await callAIApi(
-             messageContent,
+             messageContent, // 用户输入的文本
              currentChat.systemPrompt,
              currentChat.model, // 使用当前聊天选定的模型
-             uploadedFilesForSend, // 将上传文件传递给聊天 API (如果支持)
-             currentChat.messages.slice(0, -1), // 传递消息历史 (排除刚刚添加的用户消息，因为 API 会自动将用户消息加入请求 body)
+             uploadedFilesForSend, // 将上传文件（包含 File 对象）传递给 API
+             currentChat.messages.slice(0, -1), // 传递消息历史 (排除刚刚添加的用户消息)
              (data) => {
                  // onData 回调：接收到新的文本块
                  aiMessageContent += data; // 累加接收到的文本
@@ -529,7 +548,7 @@ async function sendMessage() {
                   if(lastAIMessageIndex !== -1) {
                        currentChat.messages[lastAIMessageIndex].content = aiMessageContent;
                        currentChat.messages[lastAIMessageIndex].type = 'text';
-                       // 可选：如果之前有 url 字段，移除它
+                       // 可选：如果之前有 url 字段（例如错误时添加的），移除它
                        delete currentChat.messages[lastAIMessageIndex].url;
                   } else {
                        // 这种情况不应该发生，但作为后备
@@ -538,18 +557,20 @@ async function sendMessage() {
 
                   saveChatData(chats); // 保存数据
 
-                  // ** 在流结束后对完整的 AI 消息进行最终渲染和后处理 **
+                  // 在流结束后对完整的 AI 消息进行最终渲染和后处理
                   // 重新渲染最后一个消息元素，以确保 Markdown 高亮和代码块复制按钮被正确添加
                   const contentElement = aiMessageElement.querySelector('.content');
                   if(contentElement) {
+                      // Use marked.parse for final render
                       contentElement.innerHTML = marked.parse(aiMessageContent); // 再次渲染 Markdown
+                      // Add copy buttons after innerHTML is set
                       addCopyButtonsToCodeBlocks(contentElement); // 添加复制按钮
-                      // Prism.js 的高亮需要一些时间，这里延迟一下确保 DOM 结构稳定
-                      setTimeout(() => {
-                          Prism.highlightAllUnder(contentElement); // 代码高亮
-                      }, 0); // 延迟 0ms，将其放入事件循环队列末尾
+                       // Highlight code blocks using Prism.js after adding copy buttons
+                       // Use setTimeout to ensure DOM updates are processed before highlighting
+                       setTimeout(() => {
+                            Prism.highlightAllUnder(contentElement); // 代码高亮
+                       }, 0); // 延迟 0ms，将其放入事件循环队列末尾
                   }
-
 
                   if(sendButton) sendButton.disabled = false; // 启用发送按钮
                   if(generateImageBtn) generateImageBtn.disabled = false; // 启用图片生成按钮
@@ -568,7 +589,7 @@ async function sendMessage() {
                    if(lastAIMessageIndex !== -1) {
                         currentChat.messages[lastAIMessageIndex].content = aiMessageContent;
                         currentChat.messages[lastAIMessageIndex].type = 'text';
-                        delete currentChat.messages[lastAIMessageIndex].url;
+                        delete currentChat.messages[lastAIMessageIndex].url; // 移除可能的 url 字段
                    } else {
                         // 后备方案
                         const errorMessage = { sender: 'ai', content: aiMessageContent, type: 'text' };
@@ -576,7 +597,7 @@ async function sendMessage() {
                    }
                   saveChatData(chats); // 保存数据
 
-                  // ** 在错误时也进行最终渲染和后处理 **
+                  // 在错误时也进行最终渲染和后处理
                    const contentElement = aiMessageElement.querySelector('.content');
                   if(contentElement) {
                       contentElement.innerHTML = marked.parse(aiMessageContent); // 再次渲染 Markdown
@@ -631,7 +652,6 @@ async function sendMessage() {
              addMessageToUI(errorMessage, true); // 添加新消息到 UI
         }
 
-
         saveChatData(chats); // 保存错误消息
 
     } finally {
@@ -651,6 +671,7 @@ async function generateImage() {
      const prompt = userInputElement.value.trim();
      const currentChat = chats[currentChatId];
 
+     // 生成图片只需要文本 prompt，忽略已上传文件
      if (!prompt) {
          alert("请输入图片描述（Prompt）!");
          return;
@@ -664,8 +685,9 @@ async function generateImage() {
      // 1. 添加用户发送的图片生成提示词到 UI 和数据
      const userMessage = {
          sender: 'user',
-         content: `[生成图片] ${prompt}` // 在消息内容中标记这是图片生成请求
-         // type: 'text' // 可以明确指定类型
+         content: `[生成图片] ${prompt}`, // 在消息内容中标记这是图片生成请求
+         type: 'text' // 用户消息类型仍是文本
+         // 生成图片时，忽略 uploadedFiles 列表，即使有文件上传
      };
      currentChat.messages.push(userMessage);
      addMessageToUI(userMessage, true); // 添加用户消息到 UI
@@ -690,7 +712,7 @@ async function generateImage() {
          const placeholderMessage = {
               sender: 'ai',
               content: '正在生成图片...',
-              type: 'text' // 标记为文本，稍后更新为图片类型
+              type: 'text' // 初始标记为文本，稍后更新为图片类型
          };
          currentChat.messages.push(placeholderMessage); // 添加占位符到数据
          const aiMessageElement = addMessageToUI(placeholderMessage, true); // 添加占位符到 UI
@@ -707,8 +729,8 @@ async function generateImage() {
          const lastAIMessageIndex = currentChat.messages.findLastIndex(msg => msg.sender === 'ai');
          if(lastAIMessageIndex !== -1) {
              // 更新占位符的消息数据
-             currentChat.messages[lastAIMessageIndex].type = 'image'; // 更新类型
-             currentChat.messages[lastAIMessageIndex].content = prompt; // 保存原始提示词
+             currentChat.messages[lastAIMessageIndex].type = 'image'; // 更新类型为 image
+             currentChat.messages[lastAIMessageIndex].content = prompt; // 保存原始提示词或图片的描述
              currentChat.messages[lastAIMessageIndex].url = imageUrl; // 保存图片 URL
          } else {
              // 如果找不到占位符（不应该发生），作为后备，添加一个新的完整图片消息
@@ -716,7 +738,7 @@ async function generateImage() {
              const aiImageMessage = {
                  sender: 'ai',
                  type: 'image',
-                 content: prompt,
+                 content: prompt, // 保存提示词
                  url: imageUrl
              };
               currentChat.messages.push(aiImageMessage);
@@ -734,9 +756,9 @@ async function generateImage() {
          if (aiMessageElement) {
              const contentElement = aiMessageElement.querySelector('.content');
              if (contentElement) {
-                 // 确保移除图片/音频相关的元素，如果 updateMessageWithImage 已经部分执行
-                 contentElement.innerHTML = ''; // 清空现有内容
-                 contentElement.textContent = errorMessageText; // 直接设置文本内容
+                 // 清空现有内容并显示错误文本
+                 contentElement.innerHTML = '';
+                 contentElement.textContent = errorMessageText;
 
                  // 更新聊天数据中的错误消息
                  const lastAIMessageIndex = currentChat.messages.findLastIndex(msg => msg.sender === 'ai');
@@ -785,44 +807,52 @@ function renderMessages(messages) {
     }
 
     messages.forEach(message => {
-        // 根据消息的 type 或 sender/content 结构来判断如何渲染
-        // addMessageToUI 现在会返回创建的元素
-        const messageElement = addMessageToUI(message, false); // 先添加基础消息元素，不立即滚动
+        // addMessageToUI 现在会根据 message.type 处理不同的渲染方式，并返回创建的元素
+        // 对于历史消息，shouldScroll 设置为 false，最后统一滚动一次
+        const messageElement = addMessageToUI(message, false);
 
-        if (message.sender === 'ai' && messageElement) { // 确保是 AI 消息且元素存在
-            if (message.type === 'image' && message.url) {
-                // 如果消息是图片类型，并且有 URL
-                updateMessageWithImage(messageElement, message.url, message.content || ''); // 使用 content 作为 altText
-            } else if (message.type === 'audio' && message.url) {
-                // 如果消息是音频类型，并且有 URL
-                 updateMessageWithAudio(messageElement, message.url, message.content || ''); // 使用 content 作为描述
-            } else {
-                 // 默认作为文本消息渲染
-                 // addMessageToUI 已经处理了文本渲染和 Markdown
-                 const contentElement = messageElement.querySelector('.content');
-                 if (contentElement) {
-                     // For existing messages, ensure Prism.js highlighting is applied
-                     // and copy buttons are added after rendering
-                     setTimeout(() => {
-                         Prism.highlightAllUnder(contentElement);
-                         addCopyButtonsToCodeBlocks(contentElement);
-                     }, 0);
-                 }
-            }
-        }
-        // 用户消息已经在 addMessageToUI 中渲染了，如果有文件信息，可以在这里或 addMessageToUI 中处理显示
-         // For user messages with files, add the file list below the text content
-         if (message.sender === 'user' && messageElement && message.files && message.files.length > 0) {
+        // 对于 AI 文本消息，添加复制按钮和高亮
+        // addMessageToUI 现在处理了文本消息的 Markdown 渲染
+        // 复制按钮和高亮应该在元素添加到 DOM 并渲染内容后应用
+         if (message.sender === 'ai' && message.type === 'text' && messageElement) {
+              const contentElement = messageElement.querySelector('.content');
+              if (contentElement) {
+                   // 使用 setTimeout 确保 DOM 更新后再进行高亮和添加按钮
+                  setTimeout(() => {
+                      Prism.highlightAllUnder(contentElement); // 代码高亮
+                      addCopyButtonsToCodeBlocks(contentElement); // 添加复制按钮
+                   }, 0);
+              }
+         }
+        // 对于用户消息，如果在数据中有 files 信息，将其渲染出来
+         if (message.sender === 'user' && messageElement && message.files && Array.isArray(message.files) && message.files.length > 0) {
               const contentElement = messageElement.querySelector('.content');
               if (contentElement) {
                   const fileList = document.createElement('ul');
-                  fileList.classList.add('message-files-list'); // 添加一个新的 class
+                  fileList.classList.add('message-files-list'); // 添加新的 class
                   message.files.forEach(fileInfo => {
                       const fileItem = document.createElement('li');
-                      fileItem.textContent = fileInfo.name;
-                       // 可以添加图标或链接，如果需要下载
+                      // 可以根据文件类型添加图标
+                      let iconClass = 'far fa-file'; // 默认文件图标
+                      if (fileInfo.type.startsWith('image/')) {
+                          iconClass = 'far fa-image';
+                      } else if (fileInfo.type.startsWith('audio/')) {
+                          iconClass = 'far fa-file-audio';
+                      } else if (fileInfo.type.startsWith('video/')) {
+                          iconClass = 'far fa-file-video';
+                      } else if (fileInfo.type === 'application/pdf') {
+                          iconClass = 'far fa-file-pdf';
+                      } // 添加更多文件类型的判断
+
+                      const iconElement = document.createElement('i');
+                      iconElement.classList.add(iconClass);
+                      iconElement.style.marginRight = '5px';
+
+                      fileItem.appendChild(iconElement);
+                      fileItem.appendChild(document.createTextNode(fileInfo.name)); // 使用 textNode 避免文件名中的 HTML 实体被解析
+
                        fileItem.style.fontSize = '0.8em';
-                       fileItem.style.color = 'rgba(255, 255, 255, 0.6)'; // 在用户消息中颜色稍浅
+                       fileItem.style.color = 'var(--message-sender-user)'; // 在用户消息中使用用户 sender 颜色变量
                        fileList.appendChild(fileItem);
                   });
                   contentElement.appendChild(fileList);
@@ -835,5 +865,5 @@ function renderMessages(messages) {
 }
 
 // 导出核心函数
-// ** 确保 clearCurrentChatContext 和 toggleTheme 被导出，因为它们由 ui.js 调用 **
-export { currentChatId, chats, sendMessage, renderMessages, generateImage };
+// 确保 clearCurrentChatContext 和 toggleTheme 被导出，因为它们由 ui.js 调用
+export { currentChatId, chats, sendMessage, renderMessages, generateImage, clearCurrentChatContext, toggleTheme };

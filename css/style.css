@@ -577,7 +577,7 @@ body {
     padding: 0;
     margin: 0;
     font-size: 0.8em;
-    color: var(--message-sender-ai);
+    color: var(--message-sender-ai); /* 使用 AI 文字颜色作为默认 */
 }
 
 #uploaded-files-list li {
@@ -732,7 +732,7 @@ body {
     pointer-events: none;
 }
 
-/* 消息列表中的文件列表样式 */
+/* 消息列表中的文件列表样式 - 新增 */
 .message .content .message-files-list {
     list-style: none;
     padding: 0;
@@ -741,13 +741,28 @@ body {
     color: var(--message-sender-ai); /* 使用 AI 文字颜色作为默认 */
 }
 .message.user .content .message-files-list {
-     color: rgba(255, 255, 255, 0.6); /* 用户消息中使用较浅的颜色 */
+     color: var(--message-sender-user); /* 用户消息中使用较浅的颜色 */
 }
 
 .message .content .message-files-list li {
     margin-bottom: 3px;
     /* 可以添加文件图标 */
-    /* &::before { content: "\f016"; font-family: "Font Awesome 6 Free"; font-weight: 900; margin-right: 5px; } */
+     /* 例如： */
+     /* &::before { content: "\f016"; font-family: "Font Awesome 6 Free"; font-weight: 900; margin-right: 5px; } */
+}
+
+/* 消息列表中的图片和音频样式 */
+.message .content img {
+    max-width: 100%; /* 限制图片宽度 */
+    height: auto;
+    display: block; /* 独占一行 */
+    margin: 10px 0; /* 上下留白 */
+    border-radius: 5px; /* 可选：圆角 */
+}
+
+.message .content audio {
+    width: 100%; /* 适应容器宽度 */
+    margin: 10px 0; /* 上下留白 */
 }
 
 
@@ -814,6 +829,7 @@ body {
           padding-left: 0;
           padding-right: 0;
      }
+
 
     /* 调整主内容区域 */
     .main-content {

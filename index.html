@@ -1,34 +1,30 @@
-<!DOCTYPE hideous>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chat App</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- 引入 Prism.js 用于代码高亮（可选，但可以增加代码块的可读性） -->
+    <!-- 引入 Prism.js 用于代码高亮 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
-    <!-- 引入图标库，例如 Font Awesome -->
+    <!-- 引入图标库 Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
         <!-- 侧边栏 - 聊天会话管理 + 设置 -->
-        <!-- ** 新增 class "sidebar-closed" 用于控制侧边栏在小屏幕上的隐藏状态 ** -->
         <div class="sidebar">
-             <!-- ** 新增：侧边栏开关按钮 (汉堡包菜单) ** -->
+             <!-- 侧边栏开关按钮 (汉堡包菜单) -->
              <button id="sidebar-toggle-btn" class="sidebar-toggle">
                  <i class="fas fa-bars"></i>
              </button>
 
             <!-- 侧边栏顶部：设置区域 -->
             <div class="sidebar-settings">
-                 <!-- ** 移除 "设置" 文本 ** -->
-                 <h2></h2>
-                 <!-- ** 将主题切换按钮移到此处，便于定位 ** -->
+                 <h2></h2> <!-- H2 文本隐藏，用于边框和定位参考 -->
+                 <!-- 主题切换按钮 -->
                  <button id="theme-toggle-btn" title="切换主题模式">
-                     <!-- 使用 Font Awesome 图标，初始显示太阳或月亮 -->
-                     <i class="fas fa-sun"></i>
-                     <!-- <i class="fas fa-moon" style="display: none;"></i> -->
+                     <i class="fas fa-sun"></i> <!-- 初始图标 -->
                  </button>
 
                  <div class="settings-group">
@@ -47,7 +43,7 @@
                     <label for="voice-select">选择语音:</label>
                     <select id="voice-select">
                          <!-- 语音选项将由 JavaScript 动态填充或固定 -->
-                        <option value="voice1">语音 1</option>
+                        <option value="voice1">语音 1 (默认)</option>
                         <option value="voice2">语音 2</option>
                     </select>
                 </div>
@@ -61,7 +57,7 @@
                     <!-- 聊天列表项将由 JavaScript 动态生成 -->
                 </ul>
                  <button id="new-chat-btn">+ 新建聊天</button>
-                 <!-- ** 新增：清除上下文按钮 ** -->
+                 <!-- 清除上下文按钮 -->
                  <button id="clear-context-btn">清除当前聊天上下文</button>
             </div>
 
@@ -69,14 +65,13 @@
 
         <!-- 主聊天区域 -->
         <div class="main-content">
+            <!-- 主内容区内的开关按钮 (打开按钮) -->
+            <button id="sidebar-open-btn" class="sidebar-toggle" style="display: none;">
+                <i class="fas fa-bars"></i>
+            </button>
+
             <!-- 当前聊天框 -->
             <div id="current-chat-box" class="chat-box">
-                 <!-- ** 新增：在主内容区顶部显示侧边栏开关按钮（当侧边栏隐藏时） ** -->
-                 <!-- ** 复制一个按钮，在侧边栏关闭时显示，点击打开侧边栏 ** -->
-                 <button id="sidebar-open-btn" class="sidebar-toggle" style="display: none;">
-                     <i class="fas fa-bars"></i>
-                 </button>
-
                 <div class="messages" id="messages-list">
                     <!-- 消息将由 JavaScript 动态生成 -->
                 </div>
@@ -85,6 +80,7 @@
                     <textarea id="user-input" placeholder="输入你的消息..."></textarea>
                     <div class="file-upload-area">
                         <label for="file-upload" class="upload-button">上传文件</label>
+                        <!-- 确保 multiple 属性存在 -->
                         <input type="file" id="file-upload" multiple>
                         <ul id="uploaded-files-list">
                             <!-- 上传的文件列表将由 JavaScript 动态生成 -->
@@ -97,16 +93,14 @@
                 </div>
             </div>
 
-            <!-- 模板 - 用于创建新的消息、文件列表项等 -->
-            <!-- 注意：chat-template 和 chat-list-item-template 已经在使用，保留 -->
+            <!-- 模板 -->
             <template id="message-template">
                 <div class="message">
                     <div class="sender"></div>
                     <div class="content">
-                        <!-- Markdown 渲染的内容 -->
+                        <!-- Markdown 渲染的内容 或 图片/音频元素 -->
                     </div>
-                    <!-- TODO: 如果需要在消息气泡内显示文件，这里也需要结构 -->
-                    <!-- <div class="message-files"></div> -->
+                    <!-- 用户消息中的文件列表将添加到 content 内部 -->
                 </div>
             </template>
 
@@ -131,7 +125,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- 引入 Prism.js (用于代码高亮) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <!-- 引入 Prism.js 支持的语言（例如 JavaScript, CSS, HTML） -->
+    <!-- 引入 Prism.js 支持的语言 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-html.min.js"></script>
