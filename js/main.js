@@ -1,22 +1,36 @@
-import { initializeUI, switchChatUI, addMessageToUI, updateSettingsUI, updateUploadedFilesUI } from './ui.js';
-import { callAIApi } from './api.js';
+// js/main.js
+
+import {
+    initializeUI,
+    switchChatUI,
+    addMessageToUI,
+    updateSettingsUI,
+    updateUploadedFilesUI,
+    updateChatListUI,
+    populateModelSelect
+} from './ui.js';
+// 导入 api.js 中的函数
+import { callAIApi, fetchModels } from './api.js';
 import { saveChatData, loadChatData, deleteChatData } from './storage.js';
 import { generateUniqueId } from './utils.js';
-// 导入 updateChatListUI 函数
-import { updateChatListUI } from './ui.js'; // 导入 ui.js 中的 updateChatListUI
 
-// 全局状态管理（简化起见，可以使用更高级的状态管理库如 Vuex, React Context/Redux 在更复杂的应用中）
+// 全局状态管理
 let currentChatId = null;
-let chats = {}; // { chatId: { name: '', messages: [], systemPrompt: '', model: '', uploadedFiles: [] } } // 添加 name 属性
+let chats = {}; // { chatId: { name: '', messages: [], systemPrompt: '', model: '', uploadedFiles: [] } }
+let availableModels = []; // 存储从API获取的可用模型列表
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => { // 将事件监听器改为 async
+    // 0. 获取可用模型列表并填充 UI
+    availableModels = await fetchModels();
+    // 填充模型选择下拉框
+    populateModelSelect(availableModels); // 先填充所有选项
+
     // 1. 加载保存的聊天数据
     chats = loadChatData();
     if (Object.keys(chats).length === 0) {
         // 如果没有保存的数据，创建一个新的默认聊天
         createNewChat(); // createNewChat 会处理命名和切换
     } else {
-        // 加载第一个聊天会话并显示
         // 尝试加载当前会话，如果不存在则加载第一个
         const savedCurrentChatId = localStorage.getItem('currentChatId');
         if (savedCurrentChatId && chats[savedCurrentChatId]) {
@@ -25,8 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
              const firstChatId = Object.keys(chats)[0];
              switchChat(firstChatId);
         }
-        // 初始化侧边栏列表
-        updateChatListUI(chats, currentChatId); // 初始化时调用 updateChatListUI
+         // switchChat 内部会调用 updateChatListUI 和 updateSettingsUI/populateModelSelect
     }
 
     // 2. 初始化 UI 事件监听
@@ -39,15 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. 绑定侧边栏聊天列表点击事件 (通过事件委托)
     document.getElementById('chat-list').addEventListener('click', (event) => {
         const target = event.target;
-        // 查找最近的包含 data-chat-id 属性的 li 元素
         const listItem = target.closest('li[data-chat-id]');
         if (listItem) {
             const chatId = listItem.dataset.chatId;
-            // 检查点击是否在删除按钮上
             if (target.classList.contains('delete-chat')) {
                  deleteChat(chatId);
             } else if (chatId && chatId !== currentChatId) {
-                // 如果不是删除按钮且点击的是有效的列表项，则切换聊天
                 switchChat(chatId);
             }
         }
@@ -78,35 +88,25 @@ document.addEventListener('DOMContentLoaded', () => {
 function createNewChat() {
     const newChatId = generateUniqueId();
 
-    // ** 添加获取用户输入名称的逻辑 **
     let chatName = prompt("请输入新聊天的名称:");
-    // 如果用户取消输入或输入空名称，可以使用一个默认名称
-    if (chatName === null || chatName.trim() === "") { // prompt取消返回null
-        chatName = "新聊天"; // 默认名称
+    if (chatName === null || chatName.trim() === "") {
+        chatName = "新聊天";
     }
-    // ** 获取名称逻辑结束 **
 
-    // 2. 创建新的聊天数据结构并添加到 chats 对象中
     chats[newChatId] = {
-        name: chatName, // ** 将名称存储到聊天数据中 **
+        name: chatName,
         messages: [],
-        systemPrompt: '', // 默认系统提示词为空
-        model: 'model-a', // 默认模型
-        uploadedFiles: [] // 存储已上传文件的信息
+        systemPrompt: '',
+        // 默认模型：优先使用可用列表中的第一个模型，否则使用一个硬编码的默认值
+        model: availableModels.length > 0 ? availableModels[0].name : 'openai',
+        uploadedFiles: []
     };
 
-    // 3. 更新 currentChatId 并保存到 localStorage
     currentChatId = newChatId;
     localStorage.setItem('currentChatId', currentChatId);
-    saveChatData(chats); // 保存到 localStorage
+    saveChatData(chats);
 
-    // 4. 切换到新创建的会话
     switchChat(newChatId);
-
-    // 5. 更新侧边栏列表 UI
-    // switchChat 内部会调用 updateChatListUI，这里可以省略一次，
-    // 但为了确保逻辑清晰，也可以再次调用。
-    // updateChatListUI(chats, currentChatId); // 可以选择在这里或 switchChat 中调用
 
     console.log(`Created new chat with ID: ${newChatId} and name: "${chatName}"`);
 }
@@ -123,18 +123,17 @@ function switchChat(chatId) {
     currentChatId = chatId;
     const currentChat = chats[currentChatId];
 
-    // 保存当前的 currentChatId 到 localStorage
     localStorage.setItem('currentChatId', currentChatId);
 
+    switchChatUI(currentChatId);
+    renderMessages(currentChat.messages);
+    updateUploadedFilesUI(currentChat.uploadedFiles);
 
-    // 更新 UI 显示当前聊天内容和设置
-    switchChatUI(currentChatId); // 切换到对应的聊天框UI（如果UI有区分不同聊天框的话）
-    updateSettingsUI(currentChat.model || 'model-a', currentChat.systemPrompt || ''); // 更新设置区域，提供默认值
-    renderMessages(currentChat.messages); // 渲染当前聊天会话的消息
-    updateUploadedFilesUI(currentChat.uploadedFiles); // 更新文件列表UI
+    updateSettingsUI(currentChat.model, currentChat.systemPrompt);
+    // 切换会话时，重新填充模型列表并设置当前模型为选中状态
+    populateModelSelect(availableModels, currentChat.model);
 
-    // 突出显示侧边栏中的当前聊天会话
-    updateChatListUI(chats, currentChatId); // 每次切换后更新侧边栏列表，确保高亮状态正确
+    updateChatListUI(chats, currentChatId);
 }
 
 /**
@@ -147,26 +146,22 @@ function deleteChat(chatId) {
         return;
     }
 
-    // 确认删除
-    // 使用原生的 confirm 弹窗，或者在 ui.js 中实现更友好的模态框
     if (!confirm(`确定要删除聊天 "${chats[chatId].name || '未命名聊天'}" 吗？`)) {
         return;
     }
 
     delete chats[chatId];
-    saveChatData(chats); // 从 Local Storage 保存更新后的数据
+    saveChatData(chats);
 
-    // 如果删除了当前聊天，则切换到第一个聊天（如果存在）或创建一个新的
     if (currentChatId === chatId) {
         const chatIds = Object.keys(chats);
         if (chatIds.length > 0) {
             switchChat(chatIds[0]);
         } else {
-            createNewChat(); // 没有其他聊天了，创建一个新的
+            createNewChat();
         }
     } else {
-        // 如果删除的不是当前聊天，只更新侧边栏列表
-        updateChatListUI(chats, currentChatId); // 删除后更新侧边栏列表
+        updateChatListUI(chats, currentChatId);
     }
 }
 
@@ -177,11 +172,10 @@ function deleteChat(chatId) {
 async function sendMessage() {
     const userInputElement = document.getElementById('user-input');
     const messageContent = userInputElement.value.trim();
-    // 获取当前会话的已上传文件，注意这里直接操作 chats 对象
     const uploadedFiles = chats[currentChatId]?.uploadedFiles || [];
 
     if (!messageContent && uploadedFiles.length === 0) {
-        return; // 没有内容和文件，不发送
+        return;
     }
 
     const currentChat = chats[currentChatId];
@@ -190,84 +184,67 @@ async function sendMessage() {
          return;
     }
 
+    const modelSelectElement = document.getElementById('model-select');
+    const selectedModel = modelSelectElement ? modelSelectElement.value : (currentChat.model || (availableModels.length > 0 ? availableModels[0].name : 'openai'));
+
+    if (!selectedModel) {
+         console.error("No valid model selected or available.");
+         addMessageToUI({ sender: 'ai', content: '错误：请选择一个有效的模型。' }, true);
+         return;
+    }
+
     // 1. 添加用户消息到 UI 和数据
     const userMessage = {
         sender: 'user',
         content: messageContent,
-        files: uploadedFiles.map(file => ({ name: file.name, type: file.type })) // 只保存文件信息
+        files: uploadedFiles.map(file => ({ name: file.name, type: file.type }))
     };
     currentChat.messages.push(userMessage);
-    addMessageToUI(userMessage, true); // true 表示滚动到底部
+    addMessageToUI(userMessage, true);
 
-    // 清空输入框和文件列表 UI 和数据
     userInputElement.value = '';
-    currentChat.uploadedFiles = []; // 清空当前会话的已上传文件数据
-    updateUploadedFilesUI([]); // 更新 UI
+    // 清空 UI 和数据中的已上传文件，这些文件数据会在调用 API 时传递，而不是保存在 chat.uploadedFiles 中
+    // 如果您需要保留上传文件列表直到 AI 回复，需要调整这里的逻辑
+    currentChat.uploadedFiles = [];
+    updateUploadedFilesUI([]);
+
+    // TODO: 显示加载状态 UI
+    // 例如：document.getElementById('send-btn').disabled = true;
 
     // 2. 调用 AI API 获取回复
-    // TODO: 这里你需要实现将文件内容也发送给API的逻辑，具体取决于你使用的API
-    // 例如，可能需要先读取文件内容，或者将文件上传到其他地方获取链接
-    const apiResponse = await callAIApi(messageContent, currentChat.systemPrompt, currentChat.model, uploadedFiles);
+    // 传递当前会话的完整消息历史
+    const apiResponse = await callAIApi(messageContent, currentChat.systemPrompt, selectedModel, uploadedFiles, currentChat.messages);
+
+     // TODO: 隐藏加载状态 UI
+    // 例如：document.getElementById('send-btn').disabled = false;
+
 
     // 3. 处理 AI 回复
     const aiMessage = {
         sender: 'ai',
-        content: apiResponse.text // 假设 API 返回的回复文本在 apiResponse.text 中
-        // 可以根据 API 响应添加其他信息，如图片等
+        content: apiResponse.text
     };
     currentChat.messages.push(aiMessage);
-    addMessageToUI(aiMessage, true); // true 表示滚动到底部
+    addMessageToUI(aiMessage, true);
 
-    // 4. 保存聊天数据到 Local Storage
+    // 4. 保存聊天数据
     saveChatData(chats);
 }
 
 /**
  * 渲染指定聊天会话的消息列表到 UI
- * @param {Array} messages - 消息数组
+ * ... (保持不变) ...
  */
 function renderMessages(messages) {
     const messagesListElement = document.getElementById('messages-list');
-    messagesListElement.innerHTML = ''; // 清空当前消息列表
+    messagesListElement.innerHTML = '';
 
     messages.forEach(message => {
-        addMessageToUI(message, false); // false 表示不滚动，只在加载时渲染
+        addMessageToUI(message, false);
     });
 
-    // 滚动到最底部
     messagesListElement.scrollTop = messagesListElement.scrollHeight;
 }
 
-// 这个函数将被移动到 ui.js 中，并在 main.js 中导入使用
-// /**
-//  * 更新侧边栏聊天列表 UI
-//  */
-// function updateChatListUI() {
-//     const chatListElement = document.getElementById('chat-list');
-//     chatListElement.innerHTML = ''; // 清空当前列表
-
-//     const chatIds = Object.keys(chats);
-//     chatIds.forEach(chatId => {
-//         const listItemTemplate = document.getElementById('chat-list-item-template');
-//         const listItem = listItemTemplate.content.cloneNode(true).querySelector('li');
-
-//         listItem.dataset.chatId = chatId;
-//         // 显示聊天会话的标题，可以使用存储的 name 属性
-//         const chatTitle = chats[chatId].name || // 使用存储的 name 属性
-//                           (chats[chatId].messages.length > 0
-//                             ? chats[chatId].messages[0].content.substring(0, 20) + '...'
-//                             : `新聊天 (${chatId.substring(0, 4)})`); // 如果没有 name 且没有消息，使用默认生成方式
-
-//         listItem.querySelector('span').textContent = chatTitle;
-
-//         if (chatId === currentChatId) {
-//             listItem.classList.add('active');
-//         }
-
-//         chatListElement.appendChild(listItem);
-//     });
-// }
-
-
-// 导出核心函数供其他模块使用
+// 导出核心函数
 export { currentChatId, chats, sendMessage, renderMessages };

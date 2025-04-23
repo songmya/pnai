@@ -248,6 +248,48 @@ export function updateUploadedFilesUI(files) {
  * @param {object} allChats - 包含所有聊天会话的对象 { chatId: chatData, ... }
  * @param {string} currentChatId - 当前活跃的聊天会话 ID
  */
+ export function populateModelSelect(models, currentModel) {
+    const modelSelectElement = document.getElementById('model-select');
+    if (!modelSelectElement) {
+        console.error("Error: Model select element with ID 'model-select' not found.");
+        return;
+    }
+    // 清空现有选项 (除了可能的默认占位符或第一个选项，根据需要调整)
+    // Simple clear:
+    modelSelectElement.innerHTML = '';
+    // 添加新的选项
+    if (Array.isArray(models)) {
+        models.forEach(model => {
+            // 创建 option 元素
+            const option = document.createElement('option');
+            // option 的 value 通常是模型的 name，用于在后端或 API 中识别
+            option.value = model.name;
+            // option 的文本显示 description，以便用户理解
+            option.textContent = model.description || model.name; // 如果没有 description，显示 name
+            // 如果当前模型匹配，则设置为选中状态
+            if (model.name === currentModel) {
+                option.selected = true;
+            }
+            // 添加到 select 元素中
+            modelSelectElement.appendChild(option);
+        });
+    } else {
+        console.error("populateModelSelect expects an array, but received:", models);
+         // 添加一个默认选项或错误提示
+         const option = document.createElement('option');
+         option.value = '';
+         option.textContent = '加载模型失败或无可用模型';
+         modelSelectElement.appendChild(option);
+    }
+     // 如果加载后当前聊天没有设置模型，或者设置的模型不再列表里，
+     // 可以默认选中第一个选项（如果存在）
+     if (modelSelectElement.value === '' && models.length > 0) {
+         modelSelectElement.value = models[0].name;
+         // TODO: 需要通知 main.js 更新当前聊天的 model 属性
+     }
+}
+// ** populateModelSelect 函数结束 **
+
 export function updateChatListUI(allChats, currentChatId) {
     const chatListElement = document.getElementById('chat-list');
     const listItemTemplate = document.getElementById('chat-list-item-template');
