@@ -13,7 +13,13 @@
 <body>
     <div class="app-container">
         <!-- 侧边栏 - 聊天会话管理 + 设置 -->
+        <!-- ** 新增 class "sidebar-closed" 用于控制侧边栏在小屏幕上的隐藏状态 ** -->
         <div class="sidebar">
+             <!-- ** 新增：侧边栏开关按钮 (汉堡包菜单) ** -->
+             <button id="sidebar-toggle-btn" class="sidebar-toggle">
+                 <i class="fas fa-bars"></i>
+             </button>
+
             <!-- 侧边栏顶部：设置区域 -->
             <div class="sidebar-settings">
                  <!-- ** 移除 "设置" 文本 ** -->
@@ -65,6 +71,12 @@
         <div class="main-content">
             <!-- 当前聊天框 -->
             <div id="current-chat-box" class="chat-box">
+                 <!-- ** 新增：在主内容区顶部显示侧边栏开关按钮（当侧边栏隐藏时） ** -->
+                 <!-- ** 复制一个按钮，在侧边栏关闭时显示，点击打开侧边栏 ** -->
+                 <button id="sidebar-open-btn" class="sidebar-toggle" style="display: none;">
+                     <i class="fas fa-bars"></i>
+                 </button>
+
                 <div class="messages" id="messages-list">
                     <!-- 消息将由 JavaScript 动态生成 -->
                 </div>

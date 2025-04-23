@@ -47,9 +47,49 @@ export function initializeUI() {
         console.error("Theme toggle button with ID 'theme-toggle-btn' not found.");
     }
 
+    // ** 新增：绑定侧边栏开关按钮事件 **
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn'); // 侧边栏内的关闭按钮
+    const sidebarOpenBtn = document.getElementById('sidebar-open-btn'); // 主内容区内的打开按钮
 
-     // 其他 UI 事件，如设置区域的 change 事件在 main.js 中绑定
-     // 图片生成按钮的事件监听器在 main.js 中绑定了
+    if (sidebarToggleBtn) {
+         sidebarToggleBtn.addEventListener('click', closeSidebar);
+         console.log('Binding sidebar toggle button event (close)');
+    } else {
+         console.error("Sidebar toggle button with ID 'sidebar-toggle-btn' not found.");
+    }
+
+    if (sidebarOpenBtn) {
+         sidebarOpenBtn.addEventListener('click', openSidebar);
+          console.log('Binding sidebar open button event');
+    } else {
+         console.error("Sidebar open button with ID 'sidebar-open-btn' not found.");
+    }
+
+    // 其他 UI 事件，如设置区域的 change 事件在 main.js 中绑定
+    // 图片生成按钮的事件监听器在 main.js 中绑定了
+}
+
+/**
+ * 打开侧边栏 (在小屏幕上)
+ */
+export function openSidebar() {
+    document.body.classList.add('sidebar-open');
+     // 在侧边栏打开时显示关闭按钮，隐藏打开按钮
+     document.getElementById('sidebar-toggle-btn').style.display = 'flex';
+     document.getElementById('sidebar-open-btn').style.display = 'none';
+}
+
+/**
+ * 关闭侧边栏 (在小屏幕上)
+ */
+export function closeSidebar() {
+     // 只在屏幕宽度小于 768px 时执行关闭操作
+    if (window.innerWidth < 768) {
+        document.body.classList.remove('sidebar-open');
+         // 在侧边栏关闭时隐藏关闭按钮，显示打开按钮
+         document.getElementById('sidebar-toggle-btn').style.display = 'none';
+         document.getElementById('sidebar-open-btn').style.display = 'flex';
+    }
 }
 
 /**
@@ -69,6 +109,11 @@ export function switchChatUI(chatId) {
      if (messagesListElement) {
         messagesListElement.innerHTML = '';
      }
+
+     // ** 在小屏幕上切换聊天时，自动关闭侧边栏 **
+    if (window.innerWidth < 768) {
+         closeSidebar();
+    }
 }
 
 
@@ -177,7 +222,7 @@ export function addCopyButtonsToCodeBlocks(containerElement) {
      const codeBlocks = containerElement.querySelectorAll('pre > code'); // 查找 <pre><code> 结构
 
      codeBlocks.forEach(codeElement => {
-         const preElement = codeElement.parentElement; // 获取父级 <pre> 元素
+         const preElement = codeElement.parentElement; // 获取父级 <pre>元素
 
          // 检查是否已经添加过复制按钮，避免重复
          if (preElement.querySelector('.copy-code-button')) {
@@ -330,25 +375,20 @@ function handleFileUpload(event) {
         });
 
         addUploadedFileToUI({ id: fileId, name: file.name });
-        // TODO: 需要在 main.js 中保存 chats 对象到 localStorage (当文件添加/移除时) - 现在在 main.js 的 sendMessage/generateImage 中统一保存
     }
 
     event.target.value = ''; // 清空文件输入框，以便再次选择相同文件能触发 change 事件
-     // ** 重要：在这里调用保存函数 **
-     // ui.js 不应该直接访问 chats 对象，保存逻辑应该在 main.js 中处理
-     // 移除这里的 saveChatData(chats); 调用，由 main.js 监听并保存或在文件操作完成后统一保存
-     // if (currentChatId) { // 确保有当前聊天ID
-     //      saveChatData(chats); // 移除此行
-     // }
       // 通知 main.js 文件列表已更新，由 main.js 保存
-      document.dispatchEvent(new CustomEvent('filesUpdated', { detail: { chatId: currentChatId, files: currentChat.uploadedFiles } }));
+     if (currentChatId) {
+        document.dispatchEvent(new CustomEvent('filesUpdated', { detail: { chatId: currentChatId, files: currentChat.uploadedFiles } }));
+     }
 }
 
 /**
  * 添加已上传文件到 UI 列表
  * ... (保持不变) ...
  */
-function addUploadedFileToUI(fileInfo) {
+export function addUploadedFileToUI(fileInfo) { // 导出此函数，因为 updateUploadedFilesUI 会调用它
      const uploadedFilesListElement = document.getElementById('uploaded-files-list');
      const fileItemTemplate = document.getElementById('file-item-template');
     if (!uploadedFilesListElement || !fileItemTemplate) {
@@ -393,12 +433,6 @@ function removeUploadedFile(fileId) {
     }
 
      console.log(`Removed file with ID: ${fileId}. Updated uploaded files:`, currentChat.uploadedFiles);
-     // ** 重要：在这里调用保存函数 **
-     // ui.js 不应该直接访问 chats 对象并保存。通知 main.js 文件已移除
-     // 移除这里的 saveChatData(chats); 调用
-     // if (currentChatId) { // 确保有当前聊天ID
-     //      saveChatData(chats); // 移除此行
-     // }
      if (fileRemoved && currentChatId) {
           document.dispatchEvent(new CustomEvent('filesUpdated', { detail: { chatId: currentChatId, files: currentChat.uploadedFiles } }));
      }
@@ -436,6 +470,7 @@ export function updateUploadedFilesUI(files) {
         files.forEach(file => {
             // 这里的 file 可能是一个简单对象 { id, name }，而不是完整的 File 对象
             // addUploadedFileToUI 需要的是 { id, name }
+            // 文件对象本身不应该通过事件传递，只传递 ID 和名称等安全信息
             addUploadedFileToUI({ id: file.id, name: file.name });
         });
     } else {
@@ -573,4 +608,4 @@ export function updateThemeToggleButton(theme) {
 
 // 导出核心函数
 // ** 确保 clearMessagesUI 被导出 **
-
+// ** 导出 openSidebar 和 closeSidebar 函数，虽然目前只在 ui.js 内部使用，但保留导出的可能性 **

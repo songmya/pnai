@@ -14,7 +14,9 @@ import {
     updateMessageWithAudio,
     clearMessagesUI, // 导入清除消息 UI 函数
     addCopyButtonsToCodeBlocks, // 导入添加代码块复制按钮函数
-    updateThemeToggleButton // 导入更新主题切换按钮文本函数
+    updateThemeToggleButton, // 导入更新主题切换按钮文本函数
+    openSidebar, // 导入打开侧边栏函数
+    closeSidebar // 导入关闭侧边栏函数
 } from './ui.js';
 // 导入 api.js 中的函数
 import { fetchModels, callAIApi, callTxt2ImgApi, callTxt2AudioApi } from './api.js';
@@ -31,11 +33,18 @@ let currentTheme = 'light'; // 默认主题是白天
 const DEFAULT_SYSTEM_PROMPT = "你是一个entp性格的机器人助手，要以entp性格的语气回答问题";
 // ** 定义主题存储键 **
 const THEME_STORAGE_KEY = 'aiChatAppTheme';
-
+// ** 定义侧边栏状态存储键 (可选，用于记住上次打开/关闭状态) **
+// const SIDEBAR_STATE_STORAGE_KEY = 'aiChatAppSidebarState'; // 暂时不实现状态记忆，默认小屏幕关闭，大屏幕打开
 
 document.addEventListener('DOMContentLoaded', async () => {
     // 0. 加载并应用保存的主题
     loadAndApplyTheme();
+
+     // ** 监听窗口大小改变事件，以便在切换桌面/移动视图时调整侧边栏状态和按钮显示 **
+     window.addEventListener('resize', handleWindowResize);
+     // 在初始加载时也调用一次，根据当前窗口大小设置初始侧边栏状态
+     handleWindowResize();
+
 
     // 1. 获取可用模型列表并填充 UI
     availableModels = await fetchModels();
@@ -183,7 +192,56 @@ document.addEventListener('DOMContentLoaded', async () => {
 
      // ** 9. 主题切换按钮事件 (已在 initializeUI 中处理) **
 
+     // ** 10. 监听文件列表更新的自定义事件，以便在文件添加/移除时保存数据 **
+     document.addEventListener('filesUpdated', (event) => {
+         console.log("Received filesUpdated event:", event.detail);
+         // 确保事件携带了有效的 chatId 和 files
+         if (event.detail && event.detail.chatId && chats[event.detail.chatId]) {
+              // event.detail.files 包含了最新的文件列表（可能不包含 File 对象本身，只包含 id, name 等）
+              // 在 main.js 中存储的 chats[chatId].uploadedFiles 应该包含完整的 File 对象
+              // 所以这里我们只需要触发保存逻辑，chats 对象已经在 ui.js 的 handleFileUpload/removeUploadedFile 中被修改了
+             saveChatData(chats); // 保存更新后的 chats 对象
+         } else {
+             console.warn("filesUpdated event received without valid chat data.");
+         }
+     });
+
 });
+
+// ---- 响应式处理 ----
+
+/**
+ * 根据窗口大小调整侧边栏的显示状态和按钮可见性
+ */
+function handleWindowResize() {
+     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+     const sidebarOpenBtn = document.getElementById('sidebar-open-btn');
+
+     if (window.innerWidth < 768) {
+         // 小屏幕：默认关闭侧边栏
+        if (!document.body.classList.contains('sidebar-open')) {
+             // 侧边栏当前是关闭状态
+             // 显示打开按钮，隐藏关闭按钮
+             if(sidebarOpenBtn) sidebarOpenBtn.style.display = 'flex';
+             if(sidebarToggleBtn) sidebarToggleBtn.style.display = 'none';
+         } else {
+              // 侧边栏当前是打开状态 (用户刚刚手动打开了)
+             // 隐藏打开按钮，显示关闭按钮
+             if(sidebarOpenBtn) sidebarOpenBtn.style.display = 'none';
+             if(sidebarToggleBtn) sidebarToggleBtn.style.display = 'flex';
+         }
+     } else {
+         // 大屏幕：默认打开侧边栏
+         document.body.classList.remove('sidebar-open'); // 移除 body 上的 class，让 CSS 控制宽度
+         // 隐藏所有侧边栏开关按钮
+         if(sidebarOpenBtn) sidebarOpenBtn.style.display = 'none';
+         if(sidebarToggleBtn) sidebarToggleBtn.style.display = 'none';
+     }
+      // 可以选择在这里触发 UI 更新，例如重新渲染聊天列表等，以适应新尺寸下的布局
+      // updateChatListUI(chats, currentChatId); // 可能导致不必要的重复渲染
+      // 或者只在需要时重新渲染特定的组件
+}
+
 
 // ---- 主题切换功能 ----
 
@@ -219,7 +277,7 @@ function applyTheme(theme) {
  * 切换主题 (白天 <-> 黑夜)
  * 这个函数由 UI 按钮点击事件触发
  */
-export function toggleTheme() {
+export function toggleTheme() { // 保持导出，ui.js 调用
     currentTheme = (currentTheme === 'light') ? 'dark' : 'light';
     applyTheme(currentTheme);
     // 保存用户选择的主题到 localStorage
@@ -257,7 +315,7 @@ function createNewChat(initialName, initialSystemPrompt) {
         systemPrompt: systemPrompt, // 使用传入或默认的系统提示词
         model: availableModels.length > 0 ? availableModels[0].name : 'openai', // 默认模型
         voice: 'voice1',
-        uploadedFiles: []
+        uploadedFiles: [] // 新会话的已上传文件列表为空
     };
 
     currentChatId = newChatId;
@@ -283,8 +341,11 @@ function switchChat(chatId) {
 
     localStorage.setItem('currentChatId', currentChatId);
 
+    // switchChatUI 现在会处理 UI 切换和在小屏幕下关闭侧边栏
     switchChatUI(currentChatId); // 切换侧边栏激活状态和清空消息 UI
+
     renderMessages(currentChat.messages); // 重新渲染当前聊天的所有消息
+    // 在 switchChat 时，确保根据聊天数据中的文件列表更新 UI
     updateUploadedFilesUI(currentChat.uploadedFiles); // 更新文件上传列表 UI
 
     // 更新设置区域，包括模型、系统提示词、语音选择
@@ -347,7 +408,7 @@ export function clearCurrentChatContext() { // 导出此函数，以便 ui.js �
     // 清空当前聊天的消息数组
     chats[currentChatId].messages = [];
     // 清空当前聊天的已上传文件列表（因为它们通常是针对特定消息的）
-    chats[currentChatId].uploadedFiles = [];
+    chats[currentChatId].uploadedFiles = []; // 清空文件数据
 
     saveChatData(chats); // 保存修改后的聊天数据
 
@@ -417,6 +478,7 @@ async function sendMessage() {
         sender: 'user',
         content: messageContent,
         // 在用户消息中记录本次发送的文件信息，实际文件对象不保存在 chats 数据中
+        // 存储的文件信息只包含元数据，不包含 File 对象本身，File 对象仅在本次 API 调用中传递
         files: uploadedFilesForSend.map(file => ({ name: file.name, type: file.type }))
     };
     currentChat.messages.push(userMessage);
@@ -426,6 +488,8 @@ async function sendMessage() {
     userInputElement.value = '';
     currentChat.uploadedFiles = []; // 清空上传的文件数据
     updateUploadedFilesUI([]); // 更新文件列表 UI
+     saveChatData(chats); // 保存清空文件列表后的状态
+
 
     // 2. 调用常规聊天 API (/openai)
     const sendButton = document.getElementById('send-btn');
@@ -611,6 +675,7 @@ async function generateImage() {
       // 清空已上传文件列表 UI 和数据 (生成图片不使用上传文件)
     currentChat.uploadedFiles = [];
     updateUploadedFilesUI([]);
+     saveChatData(chats); // 保存清空文件列表后的状态
 
 
      const sendButton = document.getElementById('send-btn');
@@ -746,6 +811,23 @@ function renderMessages(messages) {
             }
         }
         // 用户消息已经在 addMessageToUI 中渲染了，如果有文件信息，可以在这里或 addMessageToUI 中处理显示
+         // For user messages with files, add the file list below the text content
+         if (message.sender === 'user' && messageElement && message.files && message.files.length > 0) {
+              const contentElement = messageElement.querySelector('.content');
+              if (contentElement) {
+                  const fileList = document.createElement('ul');
+                  fileList.classList.add('message-files-list'); // 添加一个新的 class
+                  message.files.forEach(fileInfo => {
+                      const fileItem = document.createElement('li');
+                      fileItem.textContent = fileInfo.name;
+                       // 可以添加图标或链接，如果需要下载
+                       fileItem.style.fontSize = '0.8em';
+                       fileItem.style.color = 'rgba(255, 255, 255, 0.6)'; // 在用户消息中颜色稍浅
+                       fileList.appendChild(fileItem);
+                  });
+                  contentElement.appendChild(fileList);
+              }
+         }
     });
 
     // 渲染完成后滚动到底部一次
@@ -753,4 +835,5 @@ function renderMessages(messages) {
 }
 
 // 导出核心函数
+// ** 确保 clearCurrentChatContext 和 toggleTheme 被导出，因为它们由 ui.js 调用 **
 export { currentChatId, chats, sendMessage, renderMessages, generateImage };
