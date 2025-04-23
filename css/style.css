@@ -32,7 +32,9 @@ body {
     padding-bottom: 15px;
     border-bottom: 1px solid #eee;
     overflow-y: auto; /* 允许设置区域滚动 */
-    max-height: 40%; /* 限制设置区域最大高度，根据需要调整 */
+    /* 调整最大高度，从 40% 增加到例如 50% 或固定像素值 */
+    max-height: 50%; /* 增大设置模块空间 */
+    /* 或者使用固定像素值，例如 max-height: 300px; */
 }
 
 .sidebar-settings h2 {
@@ -49,12 +51,12 @@ body {
     flex-direction: column;
 }
 
-.settings-area label { /* 调整选择器以匹配新的结构 */
+.sidebar-settings label { /* 调整选择器以匹配新的结构 */
     font-weight: bold;
     margin-bottom: 5px;
 }
 
-.settings-area select, .settings-area textarea { /* 调整选择器以匹配新的结构 */
+.sidebar-settings select, .sidebar-settings textarea { /* 调整选择器以匹配新的结构 */
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -63,7 +65,7 @@ body {
     box-sizing: border-box; /* 包含 padding 和 border 在宽度内 */
 }
 
-.settings-area textarea { /* 调整选择器以匹配新的结构 */
+.sidebar-settings textarea { /* 调整选择器以匹配新的结构 */
     resize: vertical; /* 只允许垂直调整大小 */
 }
 

@@ -25,6 +25,10 @@ let currentChatId = null;
 let chats = {}; // { chatId: { name: '', messages: [], systemPrompt: '', model: '', voice: '', uploadedFiles: [] } }
 let availableModels = []; // 存储从API获取的可用模型列表
 
+// ** 定义默认系统提示词 **
+const DEFAULT_SYSTEM_PROMPT = "你是一个entp性格的机器人助手，要以entp性格的语气回答问题";
+
+
 document.addEventListener('DOMContentLoaded', async () => {
     // 0. 获取可用模型列表并填充 UI
     availableModels = await fetchModels();
@@ -36,19 +40,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ** 检查是否有保存的聊天，如果没有则创建默认聊天 **
     if (Object.keys(chats).length === 0) {
         console.log("No saved chats found. Creating a default chat.");
-        createNewChat("默认聊天"); // 创建一个名为“默认聊天”的默认会话
+        // 创建一个名为“默认聊天”的新会话，并设置默认系统提示词
+        createNewChat("默认聊天", DEFAULT_SYSTEM_PROMPT);
     } else {
         // 尝试加载上次活动的聊天
         const savedCurrentChatId = localStorage.getItem('currentChatId');
+        let targetChatId = null;
         if (savedCurrentChatId && chats[savedCurrentChatId]) {
-             switchChat(savedCurrentChatId);
+             targetChatId = savedCurrentChatId;
         } else {
              // 如果没有找到上次活动的聊天，或者对应的聊天不存在，则切换到最近的一个聊天
              const chatIds = Object.keys(chats);
              chatIds.sort((a, b) => b.localeCompare(a)); // 假设 ID 是递增的或包含时间戳
-             const latestChatId = chatIds[0];
-             switchChat(latestChatId);
+             targetChatId = chatIds[0];
         }
+         // ** 切换到目标聊天并确保设置默认系统提示词（如果聊天中没有的话） **
+         if (targetChatId) {
+             // 如果加载的聊天没有 systemPrompt 字段，为其设置默认值
+             if (chats[targetChatId].systemPrompt === undefined || chats[targetChatId].systemPrompt === null || chats[targetChatId].systemPrompt.trim() === '') {
+                  console.log(`Setting default system prompt for chat ID: ${targetChatId}`);
+                  chats[targetChatId].systemPrompt = DEFAULT_SYSTEM_PROMPT;
+                  saveChatData(chats); // 保存更新后的数据
+             }
+             switchChat(targetChatId);
+         } else {
+              // 如果没有任何聊天可加载，创建一个默认聊天
+             console.log("No chats to load. Creating a default chat.");
+             createNewChat("默认聊天", DEFAULT_SYSTEM_PROMPT);
+         }
     }
 
 
@@ -58,7 +77,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ** 3. 绑定新建聊天按钮事件 (已在 initializeUI 中或 DOMContentLoaded 中直接绑定) **
     const newChatBtn = document.getElementById('new-chat-btn');
     if(newChatBtn) {
-         newChatBtn.addEventListener('click', createNewChat);
+         // 修改新建聊天按钮事件，使其创建时使用默认系统提示词
+         newChatBtn.addEventListener('click', () => createNewChat(undefined, DEFAULT_SYSTEM_PROMPT));
          console.log('Binding new chat button event');
     } else {
          console.error("New chat button with ID 'new-chat-btn' not found.");
@@ -161,8 +181,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 /**
  * 创建新的聊天会话
  * @param {string} [initialName] - 可选，为新聊天指定一个初始名称
+ * @param {string} [initialSystemPrompt] - 可选，为新聊天指定一个初始系统提示词
  */
-function createNewChat(initialName) {
+function createNewChat(initialName, initialSystemPrompt) {
     const newChatId = generateUniqueId();
 
     let chatName = initialName;
@@ -173,11 +194,16 @@ function createNewChat(initialName) {
         }
     }
 
+    let systemPrompt = initialSystemPrompt;
+    if (systemPrompt === undefined) { // 如果没有指定初始系统提示词，使用默认值
+        systemPrompt = DEFAULT_SYSTEM_PROMPT;
+    }
+
 
     chats[newChatId] = {
         name: chatName,
         messages: [],
-        systemPrompt: '',
+        systemPrompt: systemPrompt, // 使用传入或默认的系统提示词
         model: availableModels.length > 0 ? availableModels[0].name : 'openai', // 默认模型
         voice: 'voice1',
         uploadedFiles: []
@@ -189,7 +215,7 @@ function createNewChat(initialName) {
 
     switchChat(newChatId);
 
-    console.log(`Created new chat with ID: ${newChatId} and name: "${chatName}"`);
+    console.log(`Created new chat with ID: ${newChatId} and name: "${chatName}" with system prompt: "${systemPrompt}"`);
 }
 
 /**
@@ -211,6 +237,7 @@ function switchChat(chatId) {
     updateUploadedFilesUI(currentChat.uploadedFiles); // 更新文件上传列表 UI
 
     // 更新设置区域，包括模型、系统提示词、语音选择
+    // ** 切换聊天时，从聊天数据中读取系统提示词并更新 UI **
     updateSettingsUI(currentChat.model, currentChat.systemPrompt);
     // populateModelSelect 在 DOMContentLoaded 已经调用，这里不再需要，除非模型列表会动态变化
     // populateModelSelect(availableModels, currentChat.model); // 更新选中模型
@@ -245,7 +272,7 @@ function deleteChat(chatId) {
             switchChat(chatIds[0]);
         } else {
             // 如果没有其他聊天了，创建一个新的默认聊天
-            createNewChat("默认聊天");
+            createNewChat("默认聊天", DEFAULT_SYSTEM_PROMPT);
         }
     } else {
         // 如果删除的不是当前聊天，只需要更新侧边栏列表
@@ -404,7 +431,10 @@ async function sendMessage() {
                   if(contentElement) {
                       contentElement.innerHTML = marked.parse(aiMessageContent); // 再次渲染 Markdown
                       addCopyButtonsToCodeBlocks(contentElement); // 添加复制按钮
-                      Prism.highlightAllUnder(contentElement); // 代码高亮
+                      // Prism.js 的高亮需要一些时间，这里延迟一下确保 DOM 结构稳定
+                      setTimeout(() => {
+                          Prism.highlightAllUnder(contentElement); // 代码高亮
+                      }, 0); // 延迟 0ms，将其放入事件循环队列末尾
                   }
 
 
@@ -438,7 +468,9 @@ async function sendMessage() {
                   if(contentElement) {
                       contentElement.innerHTML = marked.parse(aiMessageContent); // 再次渲染 Markdown
                       addCopyButtonsToCodeBlocks(contentElement); // 添加复制按钮
-                      Prism.highlightAllUnder(contentElement); // 代码高亮
+                       setTimeout(() => {
+                           Prism.highlightAllUnder(contentElement); // 代码高亮
+                       }, 0); // 延迟 0ms
                   }
 
 
@@ -453,9 +485,10 @@ async function sendMessage() {
         // 如果在 API 调用前发生错误，或者不是流式 API 的错误，会在这里捕获
         // 如果已经开始流并且发生错误，错误会通过 onError 回调处理
         // 这里主要用于捕获 fetch 调用本身的错误
+        const errorMessageText = `发生网络或未知错误：${error.message}`;
         const errorMessage = {
             sender: 'ai',
-            content: `发生网络或未知错误：${error.message}`,
+            content: errorMessageText,
             type: 'text'
         };
          // 如果流已经开始了，并且 aiMessageElement 已经创建，尝试更新它
@@ -475,7 +508,9 @@ async function sendMessage() {
               const contentElement = aiMessageElement.querySelector('.content');
               if(contentElement) {
                    addCopyButtonsToCodeBlocks(contentElement);
-                   Prism.highlightAllUnder(contentElement);
+                   setTimeout(() => {
+                       Prism.highlightAllUnder(contentElement);
+                   }, 0);
               }
 
         } else {
@@ -585,11 +620,9 @@ async function generateImage() {
          if (aiMessageElement) {
              const contentElement = aiMessageElement.querySelector('.content');
              if (contentElement) {
-                 contentElement.textContent = errorMessageText; // 直接设置文本内容
-                 // updateMessageWithImage 可能会清空 contentElement，所以这里直接设置 textContent
                  // 确保移除图片/音频相关的元素，如果 updateMessageWithImage 已经部分执行
-                 contentElement.querySelectorAll('img, audio, p').forEach(el => el.remove());
-                 contentElement.textContent = errorMessageText; // 再次确保文本设置
+                 contentElement.innerHTML = ''; // 清空现有内容
+                 contentElement.textContent = errorMessageText; // 直接设置文本内容
 
                  // 更新聊天数据中的错误消息
                  const lastAIMessageIndex = currentChat.messages.findLastIndex(msg => msg.sender === 'ai');
@@ -597,11 +630,11 @@ async function generateImage() {
                        currentChat.messages[lastAIMessageIndex].content = errorMessageText;
                        currentChat.messages[lastAIMessageIndex].type = 'text'; // 标记为文本类型
                        delete currentChat.messages[lastAIMessageIndex].url; // 移除 url
-                  } else {
+                   } else {
                       // 如果找不到占位符
                        const errorMessage = { sender: 'ai', content: errorMessageText, type: 'text' };
                        currentChat.messages.push(errorMessage);
-                  }
+                   }
                  saveChatData(chats);
              }
          } else {
