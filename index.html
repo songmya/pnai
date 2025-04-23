@@ -19,20 +19,32 @@
 
         <!-- 主聊天区域 -->
         <div class="main-content">
-            <!-- 设置区域 - 模型选择和系统提示词 -->
+            <!-- 设置区域 - 模型选择、系统提示词、语音选择 -->
             <div class="settings-area">
-                <div class="model-select">
+                <div class="settings-group">
                     <label for="model-select">选择模型:</label>
                     <select id="model-select">
-                        <option value="model-a">模型 A</option>
-                        <option value="model-b">模型 B</option>
-                        <!-- 更多模型选项 -->
+                        <!-- 模型选项将由 JavaScript 动态填充 -->
+                         <!-- <option value="model-a">模型 A</option> -->
+                         <!-- <option value="model-b">模型 B</option> -->
                     </select>
                 </div>
-                <div class="system-prompt">
+                <div class="settings-group">
                     <label for="system-prompt">系统提示词:</label>
                     <textarea id="system-prompt" rows="3" placeholder="输入系统提示词..."></textarea>
                 </div>
+
+                <!-- ** 添加语音选择区域 ** -->
+                <div class="settings-group" id="voice-select-container" style="display: none;">
+                    <label for="voice-select">选择语音:</label>
+                    <select id="voice-select">
+                        <option value="voice1">语音 1</option>
+                        <option value="voice2">语音 2</option>
+                        <!-- Pollinations.ai 可能支持更多语音 -->
+                    </select>
+                </div>
+                <!-- ** 语音选择区域结束 ** -->
+
             </div>
 
             <!-- 当前聊天框 -->
@@ -55,6 +67,9 @@
             </div>
 
             <!-- 模板 - 用于创建新的聊天框、消息、文件列表项等 -->
+            <!-- 注意：在单页面应用中，只显示一个 chat-box，这个 chat-template 可能用不到，
+                 除非你的设计是切换不同的 DOM 元素来代表不同的聊天会话 -->
+            <!-- 保留模板以备用，但确保 ID 与实际使用的元素匹配 -->
             <template id="chat-template">
                 <div class="chat-box">
                     <div class="messages"></div>
@@ -74,6 +89,8 @@
                 <div class="message">
                     <div class="sender"></div>
                     <div class="content"></div>
+                    <!-- TODO: 如果需要在消息气泡内显示文件，这里也需要结构 -->
+                    <!-- <div class="message-files"></div> -->
                 </div>
             </template>
 
@@ -94,13 +111,16 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js"></script>
-    <script type="module" src="js/ui.js"></script>
-    <script type="module" src="js/api.js"></script>
-    <script type="module" src="js/storage.js"></script>
-    <script type="module" src="js/utils.js"></script>
-     <!-- 如果使用 Markdown 库，在这里引用 -->
+    <!-- 引入 Marked.js (用于 Markdown 渲染) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- 引入您的 JavaScript 模块 -->
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/storage.js"></script>
+    <script type="module" src="js/api.js"></script>
+    <script type="module" src="js/ui.js"></script>
+    <script type="module" src="js/main.js"></script>
+
 
 </body>
 </html>
