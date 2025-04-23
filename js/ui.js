@@ -553,4 +553,4 @@ export function clearMessagesUI() {
 // 导出核心函数
 // 注意：这里的导出可能需要根据 main.js 的 import 来调整
 // 例如，如果 main.js 需要调用这里的 clearMessagesUI，则需要导出它
-export { addCopyButtonsToCodeBlocks, clearMessagesUI }; // 导出新增的函数
+export { addCopyButtonsToCodeBlocks }; // 导出新增的函数
