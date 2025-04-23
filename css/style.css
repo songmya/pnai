@@ -47,6 +47,11 @@
     --copy-button-text: white;
     --copied-bg: #28a745;
     --copied-text: white;
+
+    /* 主题切换按钮颜色 */
+    --theme-toggle-bg: #6c757d;
+    --theme-toggle-hover-bg: #5a6268;
+    --theme-toggle-text: white;
 }
 
 /* 黑夜模式 */
@@ -97,6 +102,11 @@
     --copy-button-text: white;
     --copied-bg: #218838; /* 与白天模式相同或稍作调整 */
     --copied-text: white;
+
+    /* 主题切换按钮颜色 (黑夜模式) */
+    --theme-toggle-bg: #3a3a3a; /* 可以使用 AI 消息背景色 */
+    --theme-toggle-hover-bg: #4a4a4a;
+    --theme-toggle-text: #eee; /* 可以使用 AI 消息文字颜色 */
 }
 
 
@@ -148,9 +158,44 @@ body {
     padding-bottom: 15px;
     border-bottom: 1px solid var(--sidebar-border);
     overflow-y: auto;
-    max-height: 50%; /* 增大设置模块空间 */
+    max-height: 50%;
      transition: border-color 0.3s ease;
+     position: relative; /* ** 使内部绝对定位的元素相对于此容器定位 ** */
+     padding-top: 40px; /* ** 为主题切换按钮留出空间 ** */
 }
+
+.sidebar-settings h2 {
+     margin-top: 0;
+     margin-bottom: 10px;
+     font-size: 1.2em;
+     border-bottom: 1px solid var(--sidebar-h2-border);
+     padding-bottom: 10px;
+     /* ** 定位 H2 标题，避免被按钮遮挡 ** */
+     position: absolute;
+     top: 10px;
+     left: 20px;
+     right: 20px; /* 让标题宽度适应容器 */
+     padding-right: 50px; /* 为右侧按钮留出空间 */
+     box-sizing: border-box;
+     background-color: var(--sidebar-bg); /* 确保背景色覆盖滚动区域 */
+     z-index: 10; /* 确保在滚动内容之上 */
+}
+
+.sidebar-settings .settings-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    /* ** 调整 settings-group 的 margin-top，避免被 H2 遮挡 ** */
+     margin-top: 0; /* 重置默认 margin-top */
+     padding-top: 0; /* 重置默认 padding-top */
+}
+
+/* 第一个 settings-group 需要额外的顶部空间 */
+.sidebar-settings .settings-group:first-of-type {
+     margin-top: 0; /* H2 已经占用了空间 */
+     padding-top: 0;
+}
+
 
 .sidebar-settings label {
     font-weight: bold;
@@ -165,8 +210,8 @@ body {
     width: 100%;
     box-sizing: border-box;
      /* 使用 CSS 变量 */
-    background-color: var(--main-content-bg); /* 输入框背景 */
-    color: var(--input-text); /* 输入框文字颜色 */
+    background-color: var(--main-content-bg);
+    color: var(--input-text);
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -279,25 +324,36 @@ body {
      background-color: var(--button-secondary-hover-bg);
 }
 
-/* 主题切换按钮样式 */
+/* 主题切换按钮样式 (小圆圈图标) */
 #theme-toggle-btn {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    /* 可以使用一个中性颜色或继承主要按钮样式 */
-    background-color: var(--button-secondary-bg); /* 示例 */
-    color: var(--button-secondary-text); /* 示例 */
-    border: none;
-    border-radius: 5px;
+    position: absolute; /* ** 绝对定位 ** */
+    top: 10px; /* ** 距离顶部距离 ** */
+    right: 10px; /* ** 距离右侧距离 ** */
+    width: 30px; /* ** 设置宽度和高度，使其成为圆形 ** */
+    height: 30px;
+    border-radius: 50%; /* ** 使其成为圆形 ** */
+    padding: 0; /* ** 移除内边距 ** */
+    display: flex; /* ** 使图标居中 ** */
+    justify-content: center;
+    align-items: center;
     cursor: pointer;
-    font-size: 1em;
-    margin-top: 10px;
-    text-align: center;
-     transition: background-color 0.2s ease, color 0.2s ease;
+    /* 使用 CSS 变量 */
+    background-color: var(--theme-toggle-bg);
+    color: var(--theme-toggle-text);
+    border: 1px solid var(--theme-toggle-text); /* 添加一个细边框 */
+    font-size: 1em; /* 图标大小 */
+    z-index: 11; /* 确保在 H2 之上 */
+    box-shadow: 0 2px 4px var(--main-content-shadow); /* 添加阴影 */
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 #theme-toggle-btn:hover {
-     background-color: var(--button-secondary-hover-bg); /* 示例 */
+     background-color: var(--theme-toggle-hover-bg);
+     box-shadow: 0 3px 6px var(--main-content-shadow);
+}
+
+#theme-toggle-btn i {
+    pointer-events: none; /* 防止点击图标时也触发按钮事件 */
 }
 
 
@@ -404,8 +460,8 @@ body {
     max-height: 100px;
     overflow-y: auto;
     /* 使用 CSS 变量 */
-     background-color: var(--main-content-bg); /* 输入框背景 */
-     color: var(--input-text); /* 输入框文字颜色 */
+     background-color: var(--main-content-bg);
+     color: var(--input-text);
      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -449,7 +505,7 @@ body {
     margin: 0;
     font-size: 0.8em;
     /* 使用 CSS 变量 */
-    color: var(--message-sender-ai); /* 使用 AI sender 颜色 */
+    color: var(--message-sender-ai);
 }
 
 #uploaded-files-list li {
@@ -517,7 +573,7 @@ body {
 .message .content pre {
     /* 使用 CSS 变量 */
     background-color: var(--code-bg);
-    border: 1px solid var(--code-border); /* 添加边框 */
+    border: 1px solid var(--code-border);
     padding: 10px;
     border-radius: 5px;
     overflow-x: auto;
@@ -530,7 +586,7 @@ body {
 .message .content pre code {
     font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
     /* Prism.js 会添加自己的 class 和样式，这里是基础 */
-     color: var(--message-text-ai); /* 代码文字颜色，可以继承 AI 消息颜色 */
+     color: var(--message-text-ai);
 }
 
 .message .content blockquote {
@@ -550,7 +606,7 @@ body {
 
 .message .content th,
 .message .content td {
-    border: 1px solid var(--chat-list-item-border); /* 使用聊天列表项边框颜色 */
+    border: 1px solid var(--chat-list-item-border);
     padding: 8px;
     text-align: left;
      transition: border-color 0.3s ease;
@@ -558,7 +614,7 @@ body {
 
 .message .content th {
     /* 使用 CSS 变量 */
-    background-color: var(--chat-list-item-active-bg); /* 使用激活的聊天列表项背景色 */
+    background-color: var(--chat-list-item-active-bg);
      transition: background-color 0.3s ease;
 }
 
@@ -605,8 +661,8 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     /* 使用 CSS 变量 */
-    background-color: var(--copied-bg); /* 保持一致 */
-    color: var(--copied-text); /* 保持一致 */
+    background-color: var(--copied-bg);
+    color: var(--copied-text);
     padding: 2px 5px;
     border-radius: 3px;
     font-size: 0.7em;

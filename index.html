@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="css/style.css">
     <!-- 引入 Prism.js 用于代码高亮（可选，但可以增加代码块的可读性） -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <!-- 引入图标库，例如 Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
@@ -15,6 +17,13 @@
             <!-- 侧边栏顶部：设置区域 -->
             <div class="sidebar-settings">
                  <h2>设置</h2>
+                 <!-- ** 将主题切换按钮移到此处，便于定位 ** -->
+                 <button id="theme-toggle-btn" title="切换主题模式">
+                     <!-- 使用 Font Awesome 图标，初始显示太阳或月亮 -->
+                     <i class="fas fa-sun"></i>
+                     <!-- <i class="fas fa-moon" style="display: none;"></i> -->
+                 </button>
+
                  <div class="settings-group">
                     <label for="model-select">选择模型:</label>
                     <select id="model-select">
@@ -35,12 +44,6 @@
                         <option value="voice2">语音 2</option>
                     </select>
                 </div>
-
-                 <!-- ** 新增：主题切换按钮 ** -->
-                 <div class="settings-group">
-                     <label>主题模式:</label>
-                     <button id="theme-toggle-btn">切换模式 (当前: 白天)</button>
-                 </div>
 
             </div>
 

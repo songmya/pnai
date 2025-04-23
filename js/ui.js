@@ -1,6 +1,6 @@
 // js/ui.js
 
-import { sendMessage, currentChatId, chats, clearCurrentChatContext, toggleTheme } from './main.js'; // 导入 toggleTheme 函数
+import { sendMessage, currentChatId, chats, clearCurrentChatContext, toggleTheme } from './main.js';
 import { generateUniqueId } from './utils.js';
 
 /**
@@ -96,10 +96,8 @@ export function addMessageToUI(message, shouldScroll) {
              if (typeof marked !== 'undefined') {
                  let renderedHtml = marked.parse(message.content || '');
                  contentElement.innerHTML = renderedHtml;
-                 addCopyButtonsToCodeBlocks(contentElement); // ** 新增：添加复制按钮 **
-                 // Prism.js 高亮在渲染完成后进行，防止流式更新问题
-                 // 在 main.js 中的 onComplete/onError 回调或 renderMessages 中调用 Prism.highlightAllUnder
-                 // Prism.highlightAllUnder(contentElement); // 暂时移除这里
+                 // 添加复制按钮和高亮在 renderMessages 或 stream onComplete 中处理
+                 // addCopyButtonsToCodeBlocks(contentElement);
              } else {
                  contentElement.textContent = message.content || '';
              }
@@ -153,18 +151,11 @@ export function updateStreamingMessageUI(messageElement, content) {
     if (contentElement) {
          // 在流式更新时，只更新文本内容（或简单的HTML），避免复杂的 Markdown 渲染和高亮，
          // 它们应该在流结束后一次性处理。
-         // 临时方案：每次更新都进行 Markdown 渲染，但代码高亮和复制按钮延迟处理
          if (typeof marked !== 'undefined') {
               contentElement.innerHTML = marked.parse(content);
-             // 延迟添加复制按钮和高亮，防止频繁操作导致问题
-             // setTimeout(() => {
-             //     addCopyButtonsToCodeBlocks(contentElement);
-             //     Prism.highlightAllUnder(contentElement);
-             // }, 50); // 短暂延迟
          } else {
              contentElement.textContent = content;
          }
-
 
          // 确保滚动到底部
          const messagesListElement = document.getElementById('messages-list');
@@ -252,7 +243,6 @@ export function updateMessageWithImage(messageElement, imageUrl, altText = '') {
              const promptText = document.createElement('p');
              promptText.textContent = `提示词: ${altText}`;
              promptText.style.fontSize = '0.9em';
-             // promptText.style.color = '#555'; // 使用 CSS 变量控制颜色
               promptText.style.color = 'var(--message-sender-ai)'; // 使用 AI sender 颜色变量
              contentElement.appendChild(promptText);
         }
@@ -299,7 +289,6 @@ export function updateMessageWithAudio(messageElement, audioUrl, description = '
              const descriptionText = document.createElement('p');
              descriptionText.textContent = `文本: ${description}`;
              descriptionText.style.fontSize = '0.9em';
-             // descriptionText.style.color = '#555'; // 使用 CSS 变量控制颜色
               descriptionText.style.color = 'var(--message-sender-ai)'; // 使用 AI sender 颜色变量
              contentElement.appendChild(descriptionText);
          }
@@ -537,25 +526,26 @@ export function updateChatListUI(allChats, currentChatId) {
 }
 
 /**
- * 清空当前聊天窗口的消息列表 UI
- */
-export function clearMessagesUI() {
-    const messagesListElement = document.getElementById('messages-list');
-    if (messagesListElement) {
-        messagesListElement.innerHTML = '';
-    }
-}
-
-/**
- * 更新主题切换按钮的文本
+ * 更新主题切换按钮的文本和图标
  * @param {string} theme - 当前主题 ('light' or 'dark')
  */
 export function updateThemeToggleButton(theme) {
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     if (themeToggleBtn) {
-        themeToggleBtn.textContent = `切换模式 (当前: ${theme === 'dark' ? '黑夜' : '白天'})`;
+        const icon = themeToggleBtn.querySelector('i');
+        if (icon) {
+            if (theme === 'dark') {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            } else {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
+        }
+        // 可以移除文本，只保留图标
+        // themeToggleBtn.textContent = `切换模式 (当前: ${theme === 'dark' ? '黑夜' : '白天'})`;
     }
 }
 
 // 导出核心函数
-export { addCopyButtonsToCodeBlocks,  updateThemeToggleButton }; // 导出新增的函数
+export { addCopyButtonsToCodeBlocks, clearMessagesUI, updateThemeToggleButton };

@@ -210,8 +210,8 @@ function applyTheme(theme) {
         body.classList.add('light-mode'); // 确保添加 light-mode
         body.classList.remove('dark-mode');
     }
-     // 更新 UI 按钮文本
-    updateThemeToggleButton(theme);
+     // 更新 UI 按钮文本/图标
+    updateThemeToggleButton(theme); // ui.js 中的函数现在更新图标
     console.log(`Applied theme: ${theme}`);
 }
 
@@ -733,7 +733,7 @@ function renderMessages(messages) {
                  updateMessageWithAudio(messageElement, message.url, message.content || ''); // 使用 content 作为描述
             } else {
                  // 默认作为文本消息渲染
-                 // addMessageToUI 已经处理了文本渲染和 Markdown、代码高亮、复制按钮
+                 // addMessageToUI 已经处理了文本渲染和 Markdown
                  const contentElement = messageElement.querySelector('.content');
                  if (contentElement) {
                      // For existing messages, ensure Prism.js highlighting is applied
@@ -753,4 +753,4 @@ function renderMessages(messages) {
 }
 
 // 导出核心函数
-export { currentChatId, chats, sendMessage, renderMessages, generateImage, clearCurrentChatContext, toggleTheme }; // 导出 toggleTheme 函数
+export { currentChatId, chats, sendMessage, renderMessages, generateImage, clearCurrentChatContext, toggleTheme };
