@@ -17,8 +17,8 @@ import {
     updateThemeToggleButton, // 导入更新主题切换按钮文本函数
     openSidebar, // 导入打开侧边栏函数
     closeSidebar, // 导入关闭侧边栏函数
-    updateVoiceSelectUI, // 导入更新语音选择 UI 的函数
-    updateVoiceSelectVisibility // 导入更新语音选择可见性的函数
+   // updateVoiceSelectUI, // 导入更新语音选择 UI 的函数
+  //  updateVoiceSelectVisibility // 导入更新语音选择可见性的函数
 } from './ui.js';
 // 导入 api.js 中的函数
 import { fetchModels, callAIApi, callTxt2ImgApi, callTxt2AudioApi } from './api.js';
@@ -433,7 +433,20 @@ export function clearCurrentChatContext() { // 导出此函数，以便 ui.js �
  * 根据选择的模型名称控制语音选择 UI 的可见性
  * @param {string} selectedModel - 当前选中的模型名称
  */
-
+function updateVoiceSelectVisibility(selectedModel) {
+    const voiceSelectContainer = document.getElementById('voice-select-container'); // 假设你的 HTML 中有一个容器
+    if (voiceSelectContainer) {
+        // Pollinations.ai txt2audio 的模型名称是 'openai-audio'
+        // TODO: 如果有其他语音模型，需要根据实际模型名称判断
+        if (selectedModel && selectedModel.toLowerCase().includes('audio')) { // 检查模型名称是否包含 'audio'
+            voiceSelectContainer.style.display = 'flex'; // 使用 flex 适应布局
+        } else {
+            voiceSelectContainer.style.display = 'none';
+        }
+    } else {
+         console.warn("Voice select container with ID 'voice-select-container' not found.");
+    }
+}
 
 /**
  * 更新语音选择下拉框的选中值
