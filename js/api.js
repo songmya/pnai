@@ -1,6 +1,6 @@
 // js/api.js
 
-const API_BASE_URL_TEXT = 'https://text.pollinations.ai/openai';
+const API_BASE_URL_TEXT = 'https://text.pollinations.ai';
 const API_BASE_URL_IMAGE = 'https://image.pollinations.ai';
 
 /**
@@ -57,7 +57,7 @@ function readFileAsBase64(file) {
  * @param {function} onError - 回调函数，当发生错误时调用
  */
 export async function callAIApi(prompt, systemPrompt, model, uploadedFiles, chatMessages, onData, onComplete, onError) {
-     const url = `${API_BASE_URL_TEXT}`; // 使用新的 /openai 端点
+     const url = `${API_BASE_URL_TEXT}/openai`; // 使用新的 /openai 端点
 
      // ** 构建 messages 数组 **
      const messages = [];
