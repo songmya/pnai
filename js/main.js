@@ -1,6 +1,7 @@
 // js/main.js
 
 import {
+    // 导入 main.js 需要调用的所有 ui.js 函数
     initializeUI,
     switchChatUI,
     addMessageToUI,
@@ -10,24 +11,28 @@ import {
     populateModelSelect,
     addStreamingMessageToUI,
     updateStreamingMessageUI,
+    // updateMessageWithImage 和 updateMessageWithAudio 现在在 ui.js 中实现并导出，main.js 需要导入它们来渲染消息
     updateMessageWithImage,
     updateMessageWithAudio,
-    clearMessagesUI, // 导入清除消息 UI 函数
-    addCopyButtonsToCodeBlocks, // 导入添加代码块复制按钮函数
-    updateThemeToggleButton, // 导入更新主题切换按钮文本函数
-    openSidebar, // 导入打开侧边栏函数
-    closeSidebar, // 导入关闭侧边栏函数
-   // updateVoiceSelectUI, // 导入更新语音选择 UI 的函数
-  //  updateVoiceSelectVisibility // 导入更新语音选择可见性的函数
+    clearMessagesUI,
+    addCopyButtonsToCodeBlocks,
+    updateThemeToggleButton,
+    openSidebar,
+    closeSidebar,
+    // updateVoiceSelectUI 和 updateVoiceSelectVisibility 仍然在 main.js 中实现，ui.js 需要导入它们
+    // 这里不导入，因为它们在 main.js 中定义，ui.js 需要从 main.js 导入
 } from './ui.js';
+
 // 导入 api.js 中的函数
 import { fetchModels, callAIApi, callTxt2ImgApi, callTxt2AudioApi } from './api.js';
+// 导入 storage.js 中的函数
 import { saveChatData, loadChatData, deleteChatData } from './storage.js';
+// 导入 utils.js 中的函数
 import { generateUniqueId } from './utils.js';
 
 // 全局状态管理
 let currentChatId = null;
-let chats = {}; // { chatId: { name: '', messages: [], systemPrompt: '', model: '', voice: '', uploadedFiles: [] } }
+let chats = {}; // { chatId: { id: '', name: '', messages: [], systemPrompt: '', model: '', voice: '', uploadedFiles: [] } }
 let availableModels = []; // 存储从API获取的可用模型列表
 let currentTheme = 'light'; // 默认主题是白天
 
@@ -84,6 +89,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                   chats[targetChatId].uploadedFiles = [];
                   saveChatData(chats); // 保存更新后的数据
              }
+              // 确保 id 字段存在
+             if (chats[targetChatId].id === undefined) {
+                 chats[targetChatId].id = targetChatId;
+                 saveChatData(chats);
+             }
+
 
              switchChat(targetChatId);
          } else {
@@ -146,7 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (currentChatId && chats[currentChatId]) {
                 chats[currentChatId].model = event.target.value;
                 saveChatData(chats);
-                 updateVoiceSelectVisibility(event.target.value); // 根据模型更新语音选择可见性
+                 updateVoiceSelectVisibility(event.target.value); // 根据模型更新语音选择可见性 (调用 main.js 中的函数)
             }
         });
          console.log('Binding model select change event');
@@ -181,7 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-     // 初始加载时根据当前模型判断是否显示语音选择
+     // 初始加载时根据当前模型判断是否显示语音选择 (调用 main.js 中的函数)
      if (currentChatId && chats[currentChatId]) {
          updateVoiceSelectVisibility(chats[currentChatId].model);
      }
@@ -236,8 +247,6 @@ function handleWindowResize() {
              if(sidebarOpenBtn) sidebarOpenBtn.style.display = 'none';
              if(sidebarToggleBtn) sidebarToggleBtn.style.display = 'flex';
          }
-         // 确保在小屏幕下关闭侧边栏（如果resize时是打开的）
-         // closeSidebar(); // 移除这行，避免resize时强制关闭，让用户控制
      } else {
          // 大屏幕：默认打开侧边栏
          document.body.classList.remove('sidebar-open'); // 移除 body 上的 class，让 CSS 控制宽度
@@ -276,16 +285,16 @@ function applyTheme(theme) {
         body.classList.add('light-mode'); // 确保添加 light-mode
         body.classList.remove('dark-mode');
     }
-     // 更新 UI 按钮文本/图标
-    updateThemeToggleButton(theme); // ui.js 中的函数现在更新图标
+     // 更新 UI 按钮文本/图标 (调用 ui.js 中的函数)
+    updateThemeToggleButton(theme);
     console.log(`Applied theme: ${theme}`);
 }
 
 /**
  * 切换主题 (白天 <-> 黑夜)
- * 这个函数由 UI 按钮点击事件触发
+ * 这个函数由 UI 按钮点击事件触发 (在 ui.js 中监听)
  */
-function toggleTheme() { // 保持导出，ui.js 调用
+function toggleTheme() {
     currentTheme = (currentTheme === 'light') ? 'dark' : 'light';
     applyTheme(currentTheme);
     // 保存用户选择的主题到 localStorage
@@ -350,22 +359,25 @@ function switchChat(chatId) {
 
     localStorage.setItem('currentChatId', currentChatId);
 
-    // switchChatUI 现在会处理 UI 切换和在小屏幕下关闭侧边栏
-    switchChatUI(currentChatId); // 切换侧边栏激活状态和清空消息 UI
+    // 调用 ui.js 中的函数来切换 UI 状态和清空消息列表
+    switchChatUI(currentChatId);
 
-    renderMessages(currentChat.messages); // 重新渲染当前聊天的所有消息
-    // 在 switchChat 时，确保根据聊天数据中的文件列表更新 UI
-    updateUploadedFilesUI(currentChat.uploadedFiles); // 更新文件上传列表 UI
+    // 重新渲染当前聊天的所有消息 (调用 main.js 中的 renderMessages)
+    renderMessages(currentChat.messages);
+    // 在 switchChat 时，确保根据聊天数据中的文件列表更新 UI (调用 ui.js 中的函数)
+    updateUploadedFilesUI(currentChat.uploadedFiles);
 
-    // 更新设置区域，包括模型、系统提示词、语音选择
-    // 切换聊天时，从聊天数据中读取系统提示词并更新 UI
+    // 更新设置区域，包括模型、系统提示词、语音选择 (调用 ui.js 中的 updateSettingsUI)
     updateSettingsUI(currentChat.model, currentChat.systemPrompt);
     // populateModelSelect 在 DOMContentLoaded 已经调用，这里不再需要，除非模型列表会动态变化
     // populateModelSelect(availableModels, currentChat.model); // 更新选中模型
+
+    // 调用 main.js 中保留并导出的语音选择 UI 更新函数
     updateVoiceSelectUI(currentChat.voice); // 更新语音选择下拉框的值
     updateVoiceSelectVisibility(currentChat.model); // 根据模型更新语音选择可见性
 
-    updateChatListUI(chats, currentChatId); // 更新侧边栏聊天列表 UI
+    // 更新侧边栏聊天列表 UI (调用 ui.js 中的函数)
+    updateChatListUI(chats, currentChatId);
 }
 
 /**
@@ -396,15 +408,16 @@ function deleteChat(chatId) {
             createNewChat("默认聊天", DEFAULT_SYSTEM_PROMPT);
         }
     } else {
-        // 如果删除的不是当前聊天，只需要更新侧边栏列表
+        // 如果删除的不是当前聊天，只需要更新侧边栏列表 (调用 ui.js 中的函数)
         updateChatListUI(chats, currentChatId);
     }
 }
 
 /**
  * 清除当前聊天会话的上下文 (删除所有消息，保留设置)
+ * 这个函数由 ui.js 中的按钮事件调用。
  */
-export function clearCurrentChatContext() { // 导出此函数，以便 ui.js 可以调用
+function clearCurrentChatContext() {
      if (!currentChatId || !chats[currentChatId]) {
         console.error("No current chat selected to clear context.");
         return;
@@ -421,7 +434,7 @@ export function clearCurrentChatContext() { // 导出此函数，以便 ui.js �
 
     saveChatData(chats); // 保存修改后的聊天数据
 
-    // 更新 UI
+    // 更新 UI (调用 ui.js 中的函数)
     clearMessagesUI(); // 清空消息列表 UI
     updateUploadedFilesUI([]); // 清空已上传文件列表 UI
 
@@ -431,6 +444,8 @@ export function clearCurrentChatContext() { // 导出此函数，以便 ui.js �
 
 /**
  * 根据选择的模型名称控制语音选择 UI 的可见性
+ * 这个函数在 main.js 中实现和调用，也由 ui.js 中的模型选择事件调用。
+ * 因此需要在 main.js 中导出。
  * @param {string} selectedModel - 当前选中的模型名称
  */
 function updateVoiceSelectVisibility(selectedModel) {
@@ -450,9 +465,11 @@ function updateVoiceSelectVisibility(selectedModel) {
 
 /**
  * 更新语音选择下拉框的选中值
+ * 这个函数在 main.js 中实现和调用，也由 ui.js 中的模型选择事件调用。
+ * 因此需要在 main.js 中导出。
  * @param {string} selectedVoice - 当前选中的语音值
  */
-export function updateVoiceSelectUI(selectedVoice) { // 导出此函数，以便 ui.js 可以调用
+function updateVoiceSelectUI(selectedVoice) {
     const voiceSelectElement = document.getElementById('voice-select');
     if (voiceSelectElement) {
         voiceSelectElement.value = selectedVoice || 'voice1'; // 默认选中 voice1
@@ -464,7 +481,7 @@ export function updateVoiceSelectUI(selectedVoice) { // 导出此函数，以便
 
 /**
  * 发送消息（用户输入），调用 AI 聊天 API
- * 支持发送文本和上传的图片。
+ * 这个函数由 ui.js 中的发送按钮事件调用。
  */
 async function sendMessage() {
     const userInputElement = document.getElementById('user-input');
@@ -472,7 +489,7 @@ async function sendMessage() {
     const currentChat = chats[currentChatId];
 
     // 获取当前聊天会话的已上传文件，仅用于本次发送
-    // 这里直接从 chats 数据中获取，它应该包含了 { id, name, type, size, file } 对象
+    // 这里直接从 chats data 中获取，它应该包含了 { id, name, type, size, file } 对象
     const uploadedFilesForSend = currentChat?.uploadedFiles || [];
 
 
@@ -498,12 +515,13 @@ async function sendMessage() {
     };
     currentChat.messages.push(userMessage);
     // addMessageToUI 现在返回创建的元素，但对于非流式用户消息，我们通常不需要其引用
-    addMessageToUI(userMessage, true); // 添加用户消息到 UI 并滚动
+    // 调用 ui.js 中的函数添加消息到 UI
+    addMessageToUI(userMessage, true);
 
     // 清空输入框和文件列表 UI 和数据 (发送后清空)
     userInputElement.value = '';
     currentChat.uploadedFiles = []; // 清空上传的文件数据
-    updateUploadedFilesUI([]); // 更新文件列表 UI
+    updateUploadedFilesUI([]); // 更新文件列表 UI (调用 ui.js 中的函数)
     saveChatData(chats); // 保存清空文件列表后的状态
 
 
@@ -514,14 +532,12 @@ async function sendMessage() {
     if(generateImageBtn) generateImageBtn.disabled = true; // 禁用图片生成按钮
 
     let aiMessageContent = ''; // 用于存储 AI 回复的文本内容
-    // 添加一个空的 AI 消息元素到 UI，用于接收流式数据
-    const aiMessageElement = addStreamingMessageToUI(); // 假设 ui.js 中有这个函数，返回消息元素
+    // 添加一个空的 AI 消息元素到 UI，用于接收流式数据 (调用 ui.js 中的函数)
+    const aiMessageElement = addStreamingMessageToUI();
 
 
     try {
-         // 调用 AI API (/openai)，传递回调函数处理流
-         // 传递用户输入的文本和上传的文件数组
-         // 传递消息历史 (排除刚刚添加的用户消息，因为 API 会自动将用户消息加入请求 body)
+         // 调用 API 函数
          await callAIApi(
              messageContent, // 用户输入的文本
              currentChat.systemPrompt,
@@ -531,7 +547,7 @@ async function sendMessage() {
              (data) => {
                  // onData 回调：接收到新的文本块
                  aiMessageContent += data; // 累加接收到的文本
-                 updateStreamingMessageUI(aiMessageElement, aiMessageContent); // 更新 UI
+                 updateStreamingMessageUI(aiMessageElement, aiMessageContent); // 更新 UI (调用 ui.js 中的函数)
              },
              () => {
                  // onComplete 回调：流结束
@@ -557,14 +573,13 @@ async function sendMessage() {
 
                   saveChatData(chats); // 保存数据
 
-                  // 在流结束后对完整的 AI 消息进行最终渲染和后处理
-                  // 重新渲染最后一个消息元素，以确保 Markdown 高亮和代码块复制按钮被正确添加
+                  // 在流结束后对完整的 AI 消息进行最终渲染和后处理 (调用 ui.js 中的函数)
                   const contentElement = aiMessageElement.querySelector('.content');
                   if(contentElement) {
                       // Use marked.parse for final render
                       contentElement.innerHTML = marked.parse(aiMessageContent); // 再次渲染 Markdown
                       // Add copy buttons after innerHTML is set
-                      addCopyButtonsToCodeBlocks(contentElement); // 添加复制按钮
+                      addCopyButtonsToCodeBlocks(contentElement); // 添加复制按钮 (调用 ui.js 中的函数)
                        // Highlight code blocks using Prism.js after adding copy buttons
                        // Use setTimeout to ensure DOM updates are processed before highlighting
                        setTimeout(() => {
@@ -581,7 +596,7 @@ async function sendMessage() {
                   const errorMessageText = `\n\n错误：${error.message}`;
                   aiMessageContent += errorMessageText; // 添加错误信息到回复
 
-                  // 更新 UI
+                  // 更新 UI (调用 ui.js 中的函数)
                   updateStreamingMessageUI(aiMessageElement, aiMessageContent); // 显示错误信息到 UI
 
                   // 更新聊天数据中的错误消息
@@ -597,16 +612,15 @@ async function sendMessage() {
                    }
                   saveChatData(chats); // 保存数据
 
-                  // 在错误时也进行最终渲染和后处理
+                  // 在错误时也进行最终渲染和后处理 (调用 ui.js 中的函数)
                    const contentElement = aiMessageElement.querySelector('.content');
                   if(contentElement) {
                       contentElement.innerHTML = marked.parse(aiMessageContent); // 再次渲染 Markdown
-                      addCopyButtonsToCodeBlocks(contentElement); // 添加复制按钮
+                      addCopyButtonsToCodeBlocks(contentElement); // 添加复制按钮 (调用 ui.js 中的函数)
                        setTimeout(() => {
                            Prism.highlightAllUnder(contentElement); // 代码高亮
                        }, 0); // 延迟 0ms
                   }
-
 
                   if(sendButton) sendButton.disabled = false; // 启用发送按钮
                   if(generateImageBtn) generateImageBtn.disabled = false; // 启用图片生成按钮
@@ -628,7 +642,7 @@ async function sendMessage() {
          // 如果流已经开始了，并且 aiMessageElement 已经创建，尝试更新它
          // 如果还没开始流，aiMessageElement 可能是 null，则添加一个新消息
         if (aiMessageElement) {
-             updateStreamingMessageUI(aiMessageElement, errorMessage.content); // 更新现有元素
+             updateStreamingMessageUI(aiMessageElement, errorMessage.content); // 更新现有元素 (调用 ui.js 中的函数)
              // 更新聊天数据
              const lastAIMessageIndex = currentChat.messages.findLastIndex(msg => msg.sender === 'ai');
              if(lastAIMessageIndex !== -1) {
@@ -638,7 +652,7 @@ async function sendMessage() {
              } else {
                   currentChat.messages.push(errorMessage);
              }
-              // 添加复制按钮/高亮到更新后的内容
+              // 添加复制按钮/高亮到更新后的内容 (调用 ui.js 中的函数)
               const contentElement = aiMessageElement.querySelector('.content');
               if(contentElement) {
                    addCopyButtonsToCodeBlocks(contentElement);
@@ -649,7 +663,7 @@ async function sendMessage() {
 
         } else {
              currentChat.messages.push(errorMessage);
-             addMessageToUI(errorMessage, true); // 添加新消息到 UI
+             addMessageToUI(errorMessage, true); // 添加新消息到 UI (调用 ui.js 中的函数)
         }
 
         saveChatData(chats); // 保存错误消息
@@ -658,13 +672,14 @@ async function sendMessage() {
          // 确保按钮被启用，以防上面的 try/catch/finally 结构没有覆盖所有情况
          // 但流式调用的按钮启用已在 onComplete/onError 中处理
          // 这里主要用于非流式 API 调用或在 API 调用前发生的错误
-         if(sendButton && sendButton.disabled) sendButton.disabled = false;
-         if(generateImageBtn && generateImageBtn.disabled) generateImageBtn.disabled = false;
+         if(sendButton) sendButton.disabled = false;
+         if(generateImageBtn) generateImageBtn.disabled = false;
     }
 }
 
 /**
  * 生成图片（由按钮触发），调用 txt2img API
+ * 这个函数由 ui.js 中的图片生成按钮事件调用。
  */
 async function generateImage() {
      const userInputElement = document.getElementById('user-input');
@@ -690,13 +705,13 @@ async function generateImage() {
          // 生成图片时，忽略 uploadedFiles 列表，即使有文件上传
      };
      currentChat.messages.push(userMessage);
-     addMessageToUI(userMessage, true); // 添加用户消息到 UI
+     addMessageToUI(userMessage, true); // 添加用户消息到 UI (调用 ui.js 中的函数)
 
      // 清空输入框
      userInputElement.value = '';
       // 清空已上传文件列表 UI 和数据 (生成图片不使用上传文件)
     currentChat.uploadedFiles = [];
-    updateUploadedFilesUI([]);
+    updateUploadedFilesUI([]); // 更新文件列表 UI (调用 ui.js 中的函数)
      saveChatData(chats); // 保存清空文件列表后的状态
 
 
@@ -715,12 +730,12 @@ async function generateImage() {
               type: 'text' // 初始标记为文本，稍后更新为图片类型
          };
          currentChat.messages.push(placeholderMessage); // 添加占位符到数据
-         const aiMessageElement = addMessageToUI(placeholderMessage, true); // 添加占位符到 UI
+         const aiMessageElement = addMessageToUI(placeholderMessage, true); // 添加占位符到 UI (调用 ui.js 中的函数)
 
-         // 3. 调用 txt2img API
+         // 3. 调用 txt2img API (调用 api.js 中的函数)
          const imageUrl = await callTxt2ImgApi(prompt);
 
-         // 4. 将占位符消息内容更新为图片和提示词文本
+         // 4. 将占位符消息内容更新为图片和提示词文本 (调用 ui.js 中的函数)
          updateMessageWithImage(aiMessageElement, imageUrl, prompt);
 
          // 5. 将生成的图片信息保存到聊天数据中
@@ -774,7 +789,7 @@ async function generateImage() {
                  saveChatData(chats);
              }
          } else {
-             // 如果连 AI 消息元素都没找到，直接添加一个新消息
+             // 如果连 AI 消息元素都没找到，直接添加一个新消息 (调用 ui.js 中的函数)
              const errorMessage = { sender: 'ai', content: errorMessageText, type: 'text' };
              currentChat.messages.push(errorMessage);
              addMessageToUI(errorMessage, true);
@@ -791,6 +806,7 @@ async function generateImage() {
 
 /**
  * 渲染指定聊天会话的消息列表到 UI
+ * 这个函数在 main.js 中实现和调用。
  * @param {Array<object>} messages - 要渲染的消息数组
  */
 function renderMessages(messages) {
@@ -807,11 +823,11 @@ function renderMessages(messages) {
     }
 
     messages.forEach(message => {
-        // addMessageToUI 现在会根据 message.type 处理不同的渲染方式，并返回创建的元素
+        // addMessageToUI 现在会根据 message.type 处理不同的渲染方式，并返回创建的元素 (调用 ui.js 中的函数)
         // 对于历史消息，shouldScroll 设置为 false，最后统一滚动一次
         const messageElement = addMessageToUI(message, false);
 
-        // 对于 AI 文本消息，添加复制按钮和高亮
+        // 对于 AI 文本消息，添加复制按钮和高亮 (调用 ui.js 中的函数)
         // addMessageToUI 现在处理了文本消息的 Markdown 渲染
         // 复制按钮和高亮应该在元素添加到 DOM 并渲染内容后应用
          if (message.sender === 'ai' && message.type === 'text' && messageElement) {
@@ -864,6 +880,15 @@ function renderMessages(messages) {
     messagesListElement.scrollTop = messagesListElement.scrollHeight;
 }
 
-// 导出核心函数
-// 确保 clearCurrentChatContext 和 toggleTheme 被导出，因为它们由 ui.js 调用
-export { currentChatId, chats, sendMessage, renderMessages, generateImage, toggleTheme };
+// 导出 main.js 中的函数，供 ui.js 调用
+export {
+    currentChatId, // Export for ui.js
+    chats, // Export for ui.js
+    sendMessage, // Export for ui.js
+    renderMessages, // Not called by ui.js, but exported maybe for debugging or future extensions? Let's not export unnecessary things for now.
+    generateImage, // Export for ui.js
+    toggleTheme, // Export for ui.js
+    clearCurrentChatContext, // Export for ui.js
+    updateVoiceSelectVisibility, // Export for ui.js
+    updateVoiceSelectUI // Export for ui.js
+};

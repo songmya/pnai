@@ -1,22 +1,27 @@
 // js/ui.js
 
-// 从 main.js 导入函数和状态
 import {
+    // 导入 ui.js 需要调用的所有 main.js 函数或变量
     sendMessage,
     currentChatId,
-    chats, // 导入 chats 对象以便更新文件列表数据
+    chats,
     clearCurrentChatContext,
     toggleTheme,
-    updateVoiceSelectUI, // 导入函数
-    updateVoiceSelectVisibility // 导入函数
+    updateVoiceSelectUI, // 导入在 main.js 中实现的语音选择 UI 更新函数
+    updateVoiceSelectVisibility // 导入在 main.js 中实现的语音选择可见性函数
 } from './main.js';
+
+// 导入 utils.js 中的函数
 import { generateUniqueId } from './utils.js';
+
 // import { saveChatData } from './storage.js'; // 不再直接在 ui.js 中保存数据，而是通过事件通知 main.js
+
 
 /**
  * 初始化 UI 事件监听器
  */
-export function initializeUI() {
+function initializeUI() {
+    // 事件监听器调用从 main.js 导入的函数
     document.getElementById('send-btn').addEventListener('click', sendMessage);
 
     document.getElementById('user-input').addEventListener('keypress', (event) => {
@@ -33,30 +38,30 @@ export function initializeUI() {
             const listItem = event.target.closest('li');
             if (listItem) {
                 const fileId = listItem.dataset.fileId;
-                 removeUploadedFile(fileId); // 调用 UI 移除，数据移除和保存由 main.js 处理
+                 removeUploadedFile(fileId); // UI 移除由 removeUploadedFile 处理，数据移除和保存由 main.js 处理
             }
         }
     });
 
-    // 绑定清除上下文按钮事件
+    // 绑定清除上下文按钮事件 (调用从 main.js 导入的函数)
      const clearContextBtn = document.getElementById('clear-context-btn');
      if (clearContextBtn) {
-         clearContextBtn.addEventListener('click', clearCurrentChatContext); // 调用 main.js 中的函数
+         clearContextBtn.addEventListener('click', clearCurrentChatContext);
          console.log('Binding clear context button event');
      } else {
          console.error("Clear context button with ID 'clear-context-btn' not found.");
      }
 
-    // 绑定主题切换按钮事件
+    // 绑定主题切换按钮事件 (调用从 main.js 导入的函数)
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', toggleTheme); // 调用 main.js 中的函数
+        themeToggleBtn.addEventListener('click', toggleTheme);
         console.log('Binding theme toggle button event');
     } else {
         console.error("Theme toggle button with ID 'theme-toggle-btn' not found.");
     }
 
-    // 绑定侧边栏开关按钮事件
+    // 绑定侧边栏开关按钮事件 (调用 ui.js 中导出的函数)
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn'); // 侧边栏内的关闭按钮
     const sidebarOpenBtn = document.getElementById('sidebar-open-btn'); // 主内容区内的打开按钮
 
@@ -80,8 +85,9 @@ export function initializeUI() {
 
 /**
  * 打开侧边栏 (在小屏幕上)
+ * 这个函数只在 ui.js 中实现和调用，由侧边栏按钮事件触发。
  */
-export function openSidebar() {
+function openSidebar() {
     document.body.classList.add('sidebar-open');
      // 在侧边栏打开时显示关闭按钮，隐藏打开按钮
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
@@ -92,8 +98,9 @@ export function openSidebar() {
 
 /**
  * 关闭侧边栏 (在小屏幕上)
+ * 这个函数只在 ui.js 中实现和调用，由侧边栏按钮事件触发。
  */
-export function closeSidebar() {
+function closeSidebar() {
      // 只在屏幕宽度小于 768px 时执行关闭操作
     if (window.innerWidth < 768) {
         document.body.classList.remove('sidebar-open');
@@ -107,8 +114,9 @@ export function closeSidebar() {
 
 /**
  * 切换到指定的聊天框 UI
+ * 这个函数在 ui.js 中实现，由 main.js 中的 switchChat 调用。
  */
-export function switchChatUI(chatId) {
+function switchChatUI(chatId) {
     document.querySelectorAll('#chat-list li.active').forEach(item => {
         item.classList.remove('active');
     });
@@ -133,11 +141,12 @@ export function switchChatUI(chatId) {
 /**
  * 添加消息到当前聊天框的 UI (非流式或首次添加流式消息)
  * 支持渲染不同类型的消息 (text, image, audio)。
+ * 这个函数在 ui.js 中实现，由 main.js 调用。
  * @param {object} message - 消息对象 { sender: 'user'|'ai', content: '...', type?: 'text' | 'image' | 'audio', url?: string, files?: Array<{ name: string, type: string }> }
  * @param {boolean} shouldScroll - 是否滚动到底部
  * @returns {Element} 返回新创建的消息 DOM 元素
  */
-export function addMessageToUI(message, shouldScroll) {
+function addMessageToUI(message, shouldScroll) {
     const messagesListElement = document.getElementById('messages-list');
     const messageTemplate = document.getElementById('message-template');
     if (!messageTemplate || !messagesListElement) {
@@ -153,62 +162,20 @@ export function addMessageToUI(message, shouldScroll) {
     if (contentElement) {
         // 根据消息类型渲染内容
         if (message.type === 'image' && message.url) {
-            // 如果是图片类型
-            const img = document.createElement('img');
-            img.src = message.url;
-            img.alt = message.content || '图片'; // 使用 content 作为 alt text
-            img.style.maxWidth = '100%';
-            img.style.height = 'auto';
-            img.style.display = 'block';
-            img.style.margin = '10px 0';
-             img.onerror = () => { // 图片加载失败处理
-                 console.error("Failed to load image:", message.url);
-                 contentElement.innerHTML = `<p>图片加载失败: ${message.url}</p>`;
-             };
-            contentElement.appendChild(img);
-
-             // 添加原始提示词文本（如果存在）
-             if (message.content && message.content.trim() !== '') {
-                  const promptText = document.createElement('p');
-                  promptText.textContent = `提示词: ${message.content}`;
-                  promptText.style.fontSize = '0.9em';
-                   promptText.style.color = message.sender === 'user' ? 'var(--message-sender-user)' : 'var(--message-sender-ai)';
-                   contentElement.appendChild(promptText);
-             }
+             // 调用本地 ui.js 中的函数来更新为图片
+            updateMessageWithImage(messageElement, message.url, message.content || '图片');
 
         } else if (message.type === 'audio' && message.url) {
-            // 如果是音频类型
-            const audio = document.createElement('audio');
-            audio.controls = true;
-            audio.style.width = '100%';
-             audio.style.margin = '10px 0';
-
-            const source = document.createElement('source');
-            source.src = message.url;
-            source.type = 'audio/mpeg'; // 假设是 mp3，根据实际 API 返回类型调整
-            audio.appendChild(source);
-            audio.innerHTML += '您的浏览器不支持音频播放。';
-             audio.onerror = () => { // 音频加载失败处理
-                 console.error("Failed to load audio:", message.url);
-                 contentElement.innerHTML = `<p>音频加载失败: ${message.url}</p>`;
-             };
-            contentElement.appendChild(audio);
-
-             // 添加原始文本描述（如果存在）
-             if (message.content && message.content.trim() !== '') {
-                  const descriptionText = document.createElement('p');
-                  descriptionText.textContent = `文本: ${message.content}`;
-                  descriptionText.style.fontSize = '0.9em';
-                   descriptionText.style.color = message.sender === 'user' ? 'var(--message-sender-user)' : 'var(--message-sender-ai)';
-                   contentElement.appendChild(descriptionText);
-             }
+            // 调用本地 ui.js 中的函数来更新为音频
+            updateMessageWithAudio(messageElement, message.url, message.content || '');
 
         } else { // 默认为文本类型 或 type 未定义
             // 对于文本消息，渲染 Markdown
              if (typeof marked !== 'undefined') {
                  let renderedHtml = marked.parse(message.content || '');
                  contentElement.innerHTML = renderedHtml;
-                 // 代码高亮和复制按钮在 main.js 的 renderMessages 或 stream onComplete 中处理
+                 // 代码高亮和复制按钮在 main.js 的 renderMessages 或 stream onComplete 中处理 (调用 ui.js 中的函数)
+                 // 这里在 addMessageToUI 首次渲染时不做，仅在 main.js 的 final 渲染时做，避免重复
              } else {
                  contentElement.textContent = message.content || '';
              }
@@ -228,9 +195,10 @@ export function addMessageToUI(message, shouldScroll) {
 // 添加处理流式消息的函数
 /**
  * 为流式回复添加一个空的 AI 消息元素到 UI
+ * 这个函数在 ui.js 中实现，由 main.js 调用。
  * @returns {Element} 返回新创建的 AI 消息 DOM 元素
  */
-export function addStreamingMessageToUI() {
+function addStreamingMessageToUI() {
      const messagesListElement = document.getElementById('messages-list');
      const messageTemplate = document.getElementById('message-template');
      if (!messageTemplate || !messagesListElement) {
@@ -253,19 +221,19 @@ export function addStreamingMessageToUI() {
 
 /**
  * 更新流式 AI 消息元素的内容
+ * 这个函数在 ui.js 中实现，由 main.js 调用。
  * @param {Element} messageElement - 要更新的消息 DOM 元素
  * @param {string} content - 要更新的文本内容
  */
-export function updateStreamingMessageUI(messageElement, content) {
+function updateStreamingMessageUI(messageElement, content) {
     if (!messageElement) return;
     const contentElement = messageElement.querySelector('.content');
     if (contentElement) {
          // 在流式更新时，只更新文本内容（或简单的HTML），避免复杂的 Markdown 渲染和高亮，
          // 它们应该在流结束后一次性处理。
          if (typeof marked !== 'undefined') {
-              // 注意：marked.parse 在流中每次都调用可能效率低下，且可能导致不完整的 markdown 结构解析错误
-              // 更优化的做法是在流中只更新文本，在 onComplete 时再进行一次完整的 Markdown 渲染
-              // 当前实现是每次都渲染，可能影响性能或显示效果
+              // 每次更新都重新解析整个内容并设置 innerHTML，性能可能不是最优
+              // 但对于小块更新和普通 Markdown 来说通常够用
               contentElement.innerHTML = marked.parse(content);
          } else {
              contentElement.textContent = content;
@@ -284,9 +252,10 @@ export function updateStreamingMessageUI(messageElement, content) {
 // 添加代码块复制按钮和逻辑
 /**
  * 在 Markdown 渲染后的代码块中添加复制按钮
+ * 这个函数在 ui.js 中实现，由 main.js 调用。
  * @param {Element} containerElement - 包含 Markdown 内容的 DOM 元素 (.content)
  */
-export function addCopyButtonsToCodeBlocks(containerElement) {
+function addCopyButtonsToCodeBlocks(containerElement) {
      const codeBlocks = containerElement.querySelectorAll('pre > code'); // 查找 <pre><code> 结构
 
      codeBlocks.forEach(codeElement => {
@@ -330,24 +299,117 @@ export function addCopyButtonsToCodeBlocks(containerElement) {
 }
 
 
-// 添加更新消息为图片/音频的函数 (这些函数在 main.js 中定义，这里只导出以便 main.js 内部使用时可以通过 import 访问)
-// 由于这些函数直接操作特定的消息元素，它们可能更适合在 ui.js 中实现，
-// 但根据您提供的结构，它们已经在 main.js 中了，所以我暂时不移动它们，只确保它们被正确调用和处理。
-// 如果需要在 ui.js 中直接调用这些函数，您需要将它们的实现移到 ui.js 并导出。
-// 目前，它们由 main.js 在 renderMessages 或 generateImage 中调用。
-// 为了清晰起见，我将它们从 main.js 的导出中移除，并在 ui.js 中将它们标记为 TODO 或不导出。
+// 添加更新消息为图片/音频的函数 - 这些函数现在移到 ui.js 中实现并导出
+/**
+ * 更新消息元素的内容为图片
+ * 这个函数在 ui.js 中实现，由 ui.js 中的 addMessageToUI 和 main.js 中的 generateImage 调用。
+ * @param {Element} messageElement - 要更新的消息 DOM 元素
+ * @param {string} imageUrl - 图片 URL
+ * @param {string} altText - 图片的替代文本 (通常是提示词)
+ */
+function updateMessageWithImage(messageElement, imageUrl, altText = '') {
+    if (!messageElement) return;
+    const contentElement = messageElement.querySelector('.content');
+    if (contentElement) {
+        // 清空原始内容并插入图片元素
+        contentElement.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = altText;
+        img.style.maxWidth = '100%'; // 限制图片宽度，避免超出容器
+        img.style.height = 'auto';
+        img.style.display = 'block'; // 使图片独占一行
+        img.style.margin = '10px 0'; // 图片上下留白
+        img.onerror = () => { // 图片加载失败处理
+                 console.error("Failed to load image:", imageUrl);
+                 contentElement.innerHTML = `<p>图片加载失败: ${imageUrl}</p>`;
+             };
+        contentElement.appendChild(img);
 
-// export function updateMessageWithImage(messageElement, imageUrl, altText = '') { ... } // TODO: Move or keep in main.js?
-// export function updateMessageWithAudio(messageElement, audioUrl, description = '') { ... } // TODO: Move or keep in main.js?
+        // 添加原始提示词作为文本（可选）
+        if (altText && altText.trim() !== '') {
+             const promptText = document.createElement('p');
+             promptText.textContent = `提示词: ${altText}`;
+             promptText.style.fontSize = '0.9em';
+              // 使用 AI sender 颜色变量 (即使是用户消息中的图片，这个描述也是 AI 消息的一部分)
+              // 或者根据 messageElement 的 class 判断是用户还是AI消息
+             const senderClass = messageElement.classList.contains('user') ? 'user' : 'ai';
+             promptText.style.color = `var(--message-sender-${senderClass})`;
+             contentElement.appendChild(promptText);
+        }
+
+
+        // 确保滚动到底部
+        const messagesListElement = document.getElementById('messages-list');
+        if (messagesListElement) {
+            messagesListElement.scrollTop = messagesListElement.scrollHeight;
+        }
+    }
+}
+
+/**
+ * 更新消息元素的内容为音频播放器
+ * 这个函数在 ui.js 中实现，由 ui.js 中的 addMessageToUI 调用。
+ * @param {Element} messageElement - 要更新的消息 DOM 元素
+ * @param {string} audioUrl - 音频 URL
+ * @param {string} description - 音频描述 (通常是文本转音频的输入文本)
+ */
+function updateMessageWithAudio(messageElement, audioUrl, description = '') {
+     if (!messageElement) return;
+     const contentElement = messageElement.querySelector('.content');
+     if (contentElement) {
+        // 清空原始内容并插入音频播放器
+        contentElement.innerHTML = '';
+
+        // 添加音频播放器
+        const audio = document.createElement('audio');
+        audio.controls = true; // 显示播放器控件
+        audio.style.width = '100%'; // 使播放器宽度适应容器
+        audio.style.margin = '10px 0'; // 播放器上下留白
+
+        const source = document.createElement('source');
+        source.src = audioUrl;
+        // 假设音频格式是 mp3，根据实际情况调整 type
+        source.type = 'audio/mpeg'; // Pollinations.ai 返回的音频类型需要确认
+        audio.appendChild(source);
+        // 添加一个回退文本，如果浏览器不支持音频
+        audio.innerHTML += '您的浏览器不支持音频播放。';
+         audio.onerror = () => { // 音频加载失败处理
+                 console.error("Failed to load audio:", audioUrl);
+                 contentElement.innerHTML = `<p>音频加载失败: ${audioUrl}</p>`;
+             };
+        contentElement.appendChild(audio);
+
+         // 添加原始文本作为描述（可选）
+         if (description && description.trim() !== '') {
+             const descriptionText = document.createElement('p');
+             descriptionText.textContent = `文本: ${description}`;
+             descriptionText.style.fontSize = '0.9em';
+              // 使用 AI sender 颜色变量 (即使是用户消息中的音频，这个描述也是 AI 消息的一部分)
+              const senderClass = messageElement.classList.contains('user') ? 'user' : 'ai';
+              descriptionText.style.color = `var(--message-sender-${senderClass})`;
+             contentElement.appendChild(descriptionText);
+         }
+
+         // 确保滚动到底部
+         const messagesListElement = document.getElementById('messages-list');
+         if (messagesListElement) {
+             messagesListElement.scrollTop = messagesListElement.scrollHeight;
+         }
+     }
+}
+// 更新消息为图片/音频的函数结束
 
 
 /**
  * 处理文件上传 input change 事件
  * 将选择的文件添加到当前聊天的 uploadedFiles 数组中，并更新 UI。
  * 触发 filesUpdated 事件通知 main.js 数据已改变。
+ * 这个函数只在 ui.js 中实现和调用。
  */
 function handleFileUpload(event) {
     const files = event.target.files;
+    // 使用从 main.js 导入的 currentChatId 和 chats
     if (files.length === 0 || !currentChatId || !chats[currentChatId]) {
         return;
     }
@@ -367,10 +429,10 @@ function handleFileUpload(event) {
             name: file.name,
             type: file.type,
             size: file.size,
-            file: file // 存储 File 对象
+            file: file // 存储 File Object
         });
 
-        // 添加文件到 UI 列表
+        // 添加文件到 UI 列表 (调用 ui.js 中导出的函数)
         addUploadedFileToUI({ id: fileId, name: file.name });
     }
 
@@ -389,8 +451,9 @@ function handleFileUpload(event) {
 
 /**
  * 添加已上传文件到 UI 列表
+ * 这个函数在 ui.js 中实现，由 ui.js 中的 handleFileUpload 和 updateUploadedFilesUI 调用。
  */
-export function addUploadedFileToUI(fileInfo) {
+function addUploadedFileToUI(fileInfo) {
      const uploadedFilesListElement = document.getElementById('uploaded-files-list');
      const fileItemTemplate = document.getElementById('file-item-template');
     if (!uploadedFilesListElement || !fileItemTemplate) {
@@ -415,9 +478,11 @@ export function addUploadedFileToUI(fileInfo) {
  * 从 UI 和数据中移除已上传文件
  * 从当前聊天的 uploadedFiles 数组中移除，并更新 UI。
  * 触发 filesUpdated 事件通知 main.js 数据已改变。
+ * 这个函数只在 ui.js 中实现和调用。
  * @param {string} fileId - 要移除的文件的 ID
  */
 function removeUploadedFile(fileId) {
+     // 使用从 main.js 导入的 currentChatId 和 chats
      if (!currentChatId || !chats[currentChatId]) {
          return;
     }
@@ -445,8 +510,9 @@ function removeUploadedFile(fileId) {
 
 /**
  * 更新设置区域（模型选择和系统提示词）的 UI
+ * 这个函数在 ui.js 中实现，由 main.js 调用。
  */
-export function updateSettingsUI(model, systemPrompt) {
+function updateSettingsUI(model, systemPrompt) {
     const modelSelectElement = document.getElementById('model-select');
     const systemPromptElement = document.getElementById('system-prompt');
 
@@ -456,13 +522,15 @@ export function updateSettingsUI(model, systemPrompt) {
     if (systemPromptElement) {
         systemPromptElement.value = systemPrompt || '';
     }
-    // 注意：语音选择 UI 的更新由 updateVoiceSelectUI 函数处理，可见性由 updateVoiceSelectVisibility 处理
+    // 注意：语音选择 UI 的更新由 updateVoiceSelectUI 函数处理 (从 main.js 导入)
+    // 可见性由 updateVoiceSelectVisibility 处理 (从 main.js 导入)
 }
 
 /**
  * 更新已上传文件列表的 UI
+ * 这个函数在 ui.js 中实现，由 main.js 中的 switchChat 和 sendMessage 调用。
  */
-export function updateUploadedFilesUI(files) {
+function updateUploadedFilesUI(files) {
     const uploadedFilesListElement = document.getElementById('uploaded-files-list');
     if (!uploadedFilesListElement) {
         console.error("Error: Uploaded files list element with ID 'uploaded-files-list' not found.");
@@ -482,8 +550,9 @@ export function updateUploadedFilesUI(files) {
 
 /**
  * 根据获取的模型列表填充模型选择下拉框
+ * 这个函数在 ui.js 中实现，由 main.js 调用。
  */
- export function populateModelSelect(models, currentModel) {
+ function populateModelSelect(models, currentModel) {
     const modelSelectElement = document.getElementById('model-select');
     if (!modelSelectElement) {
         console.error("Error: Model select element with ID 'model-select' not found.");
@@ -521,8 +590,9 @@ export function updateUploadedFilesUI(files) {
 
 /**
  * 更新侧边栏的聊天列表 UI
+ * 这个函数在 ui.js 中实现，由 main.js 调用。
  */
-export function updateChatListUI(allChats, currentChatId) {
+function updateChatListUI(allChats, currentChatId) {
     const chatListElement = document.getElementById('chat-list');
     const listItemTemplate = document.getElementById('chat-list-item-template');
 
@@ -569,7 +639,7 @@ export function updateChatListUI(allChats, currentChatId) {
             listItem.classList.add('active');
         }
 
-        // 删除按钮事件监听在 main.js 中通过事件委托绑定到 #chat-list
+        // 删除按钮事件监听在 initializeUI 中通过事件委托绑定到 #chat-list
         // 这里只需要将按钮添加到 DOM
         const deleteButton = listItem.querySelector('.delete-chat');
         if(deleteButton) {
@@ -583,8 +653,9 @@ export function updateChatListUI(allChats, currentChatId) {
 
 /**
  * 清空当前聊天窗口的消息列表 UI
+ * 这个函数在 ui.js 中实现，由 main.js 中的 clearCurrentChatContext 调用。
  */
-export function clearMessagesUI() {
+function clearMessagesUI() {
     const messagesListElement = document.getElementById('messages-list');
     if (messagesListElement) {
         messagesListElement.innerHTML = '';
@@ -593,9 +664,10 @@ export function clearMessagesUI() {
 
 /**
  * 更新主题切换按钮的文本和图标
+ * 这个函数在 ui.js 中实现，由 main.js 中的 applyTheme 调用。
  * @param {string} theme - 当前主题 ('light' or 'dark')
  */
-export function updateThemeToggleButton(theme) {
+function updateThemeToggleButton(theme) {
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     if (themeToggleBtn) {
         const icon = themeToggleBtn.querySelector('i');
@@ -615,10 +687,23 @@ export function updateThemeToggleButton(theme) {
     }
 }
 
-// 导出核心函数
-// 确保 clearCurrentChatContext 和 toggleTheme 被导出，因为它们由 ui.js 调用
-// 导出 openSidebar 和 closeSidebar 函数
-// 导出 populateModelSelect, updateSettingsUI, updateUploadedFilesUI, updateChatListUI, clearMessagesUI, addStreamingMessageToUI, updateStreamingMessageUI, addCopyButtonsToCodeBlocks, updateMessageWithImage, updateMessageWithAudio, updateThemeToggleButton, updateVoiceSelectUI, updateVoiceSelectVisibility
-// 这些函数由 main.js 或其他部分调用来更新 UI
-
+// 导出 ui.js 中的所有函数，供 main.js 调用
+export {
+    initializeUI,
+    switchChatUI,
+    addMessageToUI,
+    updateSettingsUI,
+    updateUploadedFilesUI,
+    updateChatListUI,
+    populateModelSelect,
+    addStreamingMessageToUI,
+    updateStreamingMessageUI,
+    addCopyButtonsToCodeBlocks,
+    updateMessageWithImage,
+    updateMessageWithAudio,
+    clearMessagesUI,
+    openSidebar,
+    closeSidebar,
+    updateThemeToggleButton
+};
 
