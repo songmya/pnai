@@ -13,7 +13,8 @@ import {
     updateMessageWithImage,
     updateMessageWithAudio,
     clearMessagesUI, // 导入清除消息 UI 函数
-    addCopyButtonsToCodeBlocks // 导入添加代码块复制按钮函数
+    addCopyButtonsToCodeBlocks, // 导入添加代码块复制按钮函数
+    updateThemeToggleButton // 导入更新主题切换按钮文本函数
 } from './ui.js';
 // 导入 api.js 中的函数
 import { fetchModels, callAIApi, callTxt2ImgApi, callTxt2AudioApi } from './api.js';
@@ -24,17 +25,23 @@ import { generateUniqueId } from './utils.js';
 let currentChatId = null;
 let chats = {}; // { chatId: { name: '', messages: [], systemPrompt: '', model: '', voice: '', uploadedFiles: [] } }
 let availableModels = []; // 存储从API获取的可用模型列表
+let currentTheme = 'light'; // 默认主题是白天
 
 // ** 定义默认系统提示词 **
 const DEFAULT_SYSTEM_PROMPT = "你是一个entp性格的机器人助手，要以entp性格的语气回答问题";
+// ** 定义主题存储键 **
+const THEME_STORAGE_KEY = 'aiChatAppTheme';
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 0. 获取可用模型列表并填充 UI
+    // 0. 加载并应用保存的主题
+    loadAndApplyTheme();
+
+    // 1. 获取可用模型列表并填充 UI
     availableModels = await fetchModels();
     populateModelSelect(availableModels);
 
-    // 1. 加载保存的聊天数据
+    // 2. 加载保存的聊天数据
     chats = loadChatData();
 
     // ** 检查是否有保存的聊天，如果没有则创建默认聊天 **
@@ -71,10 +78,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // 2. 初始化 UI 事件监听 (在 ui.js 中实现，这里只需调用)
+    // 3. 初始化 UI 事件监听 (在 ui.js 中实现，这里只需调用)
     initializeUI();
 
-    // ** 3. 绑定新建聊天按钮事件 (已在 initializeUI 中或 DOMContentLoaded 中直接绑定) **
+    // ** 4. 绑定新建聊天按钮事件 (已在 initializeUI 中或 DOMContentLoaded 中直接绑定) **
     const newChatBtn = document.getElementById('new-chat-btn');
     if(newChatBtn) {
          // 修改新建聊天按钮事件，使其创建时使用默认系统提示词
@@ -85,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // ** 4. 绑定侧边栏聊天列表点击事件 (包含切换和删除) **
+    // ** 5. 绑定侧边栏聊天列表点击事件 (包含切换和删除) **
     // 使用事件委托处理列表项点击和删除按钮点击
     const chatListElement = document.getElementById('chat-list');
     if (chatListElement) {
@@ -113,7 +120,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // ** 5. 绑定设置区域（模型选择、系统提示词、语音选择）的 change/input 事件 **
+    // ** 6. 绑定设置区域（模型选择、系统提示词、语音选择）的 change/input 事件 **
     const modelSelectElement = document.getElementById('model-select');
     const systemPromptElement = document.getElementById('system-prompt');
     const voiceSelectElement = document.getElementById('voice-select');
@@ -163,7 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
          updateVoiceSelectVisibility(chats[currentChatId].model);
      }
 
-     // ** 新增：绑定生成图片按钮事件 **
+     // ** 7. 绑定生成图片按钮事件 **
      const generateImageBtn = document.getElementById('generate-image-btn');
      if (generateImageBtn) {
          generateImageBtn.addEventListener('click', generateImage);
@@ -172,9 +179,53 @@ document.addEventListener('DOMContentLoaded', async () => {
          console.error("Generate image button with ID 'generate-image-btn' not found.");
      }
 
-      // ** 新增：绑定清除上下文按钮事件 (已在 initializeUI 中处理) **
+      // ** 8. 绑定清除上下文按钮事件 (已在 initializeUI 中处理) **
+
+     // ** 9. 主题切换按钮事件 (已在 initializeUI 中处理) **
 
 });
+
+// ---- 主题切换功能 ----
+
+/**
+ * 加载并应用保存的主题
+ */
+function loadAndApplyTheme() {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    // 默认是白天模式，或者加载保存的主题
+    currentTheme = (savedTheme === 'dark') ? 'dark' : 'light';
+    applyTheme(currentTheme);
+}
+
+/**
+ * 应用指定的主题
+ * @param {string} theme - 要应用的主题 ('light' or 'dark')
+ */
+function applyTheme(theme) {
+    const body = document.body;
+    if (theme === 'dark') {
+        body.classList.add('dark-mode');
+        body.classList.remove('light-mode'); // 确保移除 light-mode
+    } else {
+        body.classList.add('light-mode'); // 确保添加 light-mode
+        body.classList.remove('dark-mode');
+    }
+     // 更新 UI 按钮文本
+    updateThemeToggleButton(theme);
+    console.log(`Applied theme: ${theme}`);
+}
+
+/**
+ * 切换主题 (白天 <-> 黑夜)
+ * 这个函数由 UI 按钮点击事件触发
+ */
+export function toggleTheme() {
+    currentTheme = (currentTheme === 'light') ? 'dark' : 'light';
+    applyTheme(currentTheme);
+    // 保存用户选择的主题到 localStorage
+    localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
+}
+
 
 // ---- 核心功能函数 ----
 
@@ -283,7 +334,7 @@ function deleteChat(chatId) {
 /**
  * 清除当前聊天会话的上下文 (删除所有消息，保留设置)
  */
-function clearCurrentChatContext() {
+export function clearCurrentChatContext() { // 导出此函数，以便 ui.js 可以调用
      if (!currentChatId || !chats[currentChatId]) {
         console.error("No current chat selected to clear context.");
         return;
@@ -425,8 +476,6 @@ async function sendMessage() {
 
                   // ** 在流结束后对完整的 AI 消息进行最终渲染和后处理 **
                   // 重新渲染最后一个消息元素，以确保 Markdown 高亮和代码块复制按钮被正确添加
-                  // 这可以通过移除旧元素并添加新元素，或者更新现有元素的 innerHTML 后再处理
-                  // 更简单的方式是直接更新现有元素的 innerHTML 并添加按钮/高亮
                   const contentElement = aiMessageElement.querySelector('.content');
                   if(contentElement) {
                       contentElement.innerHTML = marked.parse(aiMessageContent); // 再次渲染 Markdown
@@ -685,6 +734,15 @@ function renderMessages(messages) {
             } else {
                  // 默认作为文本消息渲染
                  // addMessageToUI 已经处理了文本渲染和 Markdown、代码高亮、复制按钮
+                 const contentElement = messageElement.querySelector('.content');
+                 if (contentElement) {
+                     // For existing messages, ensure Prism.js highlighting is applied
+                     // and copy buttons are added after rendering
+                     setTimeout(() => {
+                         Prism.highlightAllUnder(contentElement);
+                         addCopyButtonsToCodeBlocks(contentElement);
+                     }, 0);
+                 }
             }
         }
         // 用户消息已经在 addMessageToUI 中渲染了，如果有文件信息，可以在这里或 addMessageToUI 中处理显示
@@ -695,4 +753,4 @@ function renderMessages(messages) {
 }
 
 // 导出核心函数
-export { currentChatId, chats, sendMessage, renderMessages, generateImage, clearCurrentChatContext }; // 导出 clearCurrentChatContext 函数
+export { currentChatId, chats, sendMessage, renderMessages, generateImage, clearCurrentChatContext, toggleTheme }; // 导出 toggleTheme 函数

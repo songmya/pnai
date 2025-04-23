@@ -1,11 +1,116 @@
+/* 定义 CSS 变量 */
+:root {
+    /* 白天模式 (默认) */
+    --bg-color: #f4f4f4;
+    --sidebar-bg: #fff;
+    --sidebar-border: #ddd;
+    --sidebar-h2-border: #eee;
+    --chat-list-item-border: #eee;
+    --chat-list-item-hover-bg: #f0f0f0;
+    --chat-list-item-active-bg: #e9e9e9;
+    --main-content-bg: #fff;
+    --main-content-shadow: rgba(0, 0, 0, 0.1);
+    --message-bg-ai: #e9e9eb;
+    --message-text-ai: #333;
+    --message-sender-ai: #555;
+    --message-bg-user: #007bff;
+    --message-text-user: white;
+    --message-sender-user: rgba(255, 255, 255, 0.8);
+    --input-area-bg: #f9f9f9;
+    --input-border: #ccc;
+    --input-text: #333; /* 输入框文字颜色 */
+    --placeholder-text: #888; /* placeholder 颜色 */
+    --code-bg: #f0f0f0; /* 代码块背景 */
+    --code-border: #ddd; /* 代码块边框 */
+    --blockquote-border: #ccc;
+    --blockquote-text: #666;
+    --button-primary-bg: #007bff;
+    --button-primary-text: white;
+    --button-primary-hover-bg: #0056b3;
+    --button-secondary-bg: #6c757d; /* 清除上下文按钮 */
+    --button-secondary-text: white;
+    --button-secondary-hover-bg: #5a6268;
+    --button-success-bg: #28a745; /* 上传按钮 */
+    --button-success-text: white;
+    --button-success-hover-bg: #218838;
+    --button-warning-bg: #ffc107; /* 图片生成按钮 */
+    --button-warning-text: #212529;
+    --button-warning-hover-bg: #e0a800;
+    --button-danger-bg: #f44336; /* 删除按钮 */
+    --button-danger-text: white;
+    --button-danger-hover-bg: #d32f2f;
+    --disabled-bg: #cccccc;
+    --disabled-text: #666;
+    --copy-button-bg: rgba(0, 0, 0, 0.5);
+    --copy-button-hover-bg: rgba(0, 0, 0, 0.7);
+    --copy-button-active-bg: rgba(0, 0, 0, 0.9);
+    --copy-button-text: white;
+    --copied-bg: #28a745;
+    --copied-text: white;
+}
+
+/* 黑夜模式 */
+.dark-mode {
+    --bg-color: #121212;
+    --sidebar-bg: #1e1e1e;
+    --sidebar-border: #333;
+    --sidebar-h2-border: #333;
+    --chat-list-item-border: #333;
+    --chat-list-item-hover-bg: #2a2a2a;
+    --chat-list-item-active-bg: #3a3a3a;
+    --main-content-bg: #2a2a2a;
+    --main-content-shadow: rgba(0, 0, 0, 0.3);
+    --message-bg-ai: #3a3a3a;
+    --message-text-ai: #eee;
+    --message-sender-ai: #bbb;
+    --message-bg-user: #0056b3; /* 深一点的蓝色 */
+    --message-text-user: #fff;
+    --message-sender-user: rgba(255, 255, 255, 0.7);
+    --input-area-bg: #1e1e1e;
+    --input-border: #555;
+    --input-text: #eee;
+    --placeholder-text: #aaa;
+    --code-bg: #2d2d2d; /* Prism tomorrow 主题的背景 */
+    --code-border: #444;
+    --blockquote-border: #555;
+    --blockquote-text: #aaa;
+    --button-primary-bg: #0056b3;
+    --button-primary-text: white;
+    --button-primary-hover-bg: #004085;
+    --button-secondary-bg: #5a6268;
+    --button-secondary-text: white;
+    --button-secondary-hover-bg: #495057;
+    --button-success-bg: #218838;
+    --button-success-text: white;
+    --button-success-hover-bg: #1e7e34;
+    --button-warning-bg: #e0a800;
+    --button-warning-text: #212529;
+    --button-warning-hover-bg: #c69500;
+    --button-danger-bg: #d32f2f;
+    --button-danger-text: white;
+    --button-danger-hover-bg: #c82333;
+     --disabled-bg: #444;
+     --disabled-text: #888;
+    --copy-button-bg: rgba(255, 255, 255, 0.2);
+    --copy-button-hover-bg: rgba(255, 255, 255, 0.4);
+    --copy-button-active-bg: rgba(255, 255, 255, 0.6);
+    --copy-button-text: white;
+    --copied-bg: #218838; /* 与白天模式相同或稍作调整 */
+    --copied-text: white;
+}
+
+
 body {
     font-family: sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
+    /* 使用 CSS 变量 */
+    background-color: var(--bg-color);
+    color: var(--message-text-ai); /* 默认文字颜色 */
     display: flex;
     height: 100vh;
-    overflow: hidden; /* 防止整个页面滚动 */
+    overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease; /* 添加过渡效果 */
 }
 
 .app-container {
@@ -16,97 +121,105 @@ body {
 
 /* 侧边栏样式 */
 .sidebar {
-    width: 280px; /* 适当增大侧边栏宽度 */
-    background-color: #fff;
-    border-right: 1px solid #ddd;
+    width: 280px;
+    /* 使用 CSS 变量 */
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
     padding: 20px;
     display: flex;
     flex-direction: column;
-    overflow-y: hidden; /* 允许侧边栏内部的子区域滚动，但侧边栏本身不滚动 */
+    overflow-y: hidden;
+     transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.sidebar h2 {
+    margin-top: 0;
+    font-size: 1.2em;
+    border-bottom: 1px solid var(--sidebar-h2-border);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+     transition: border-color 0.3s ease;
 }
 
 /* 侧边栏顶部：设置区域 */
 .sidebar-settings {
-    flex-shrink: 0; /* 不压缩 */
+    flex-shrink: 0;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
-    overflow-y: auto; /* 允许设置区域滚动 */
-    /* 调整最大高度，从 40% 增加到例如 50% 或固定像素值 */
+    border-bottom: 1px solid var(--sidebar-border);
+    overflow-y: auto;
     max-height: 50%; /* 增大设置模块空间 */
-    /* 或者使用固定像素值，例如 max-height: 300px; */
+     transition: border-color 0.3s ease;
 }
 
-.sidebar-settings h2 {
-    margin-top: 0;
-    font-size: 1.2em;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    margin-bottom: 10px; /* 增加 h2 和 group 之间的间距 */
-}
-
-.settings-group {
-    margin-bottom: 15px; /* 增加设置组之间的间距 */
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-settings label { /* 调整选择器以匹配新的结构 */
+.sidebar-settings label {
     font-weight: bold;
     margin-bottom: 5px;
 }
 
-.sidebar-settings select, .sidebar-settings textarea { /* 调整选择器以匹配新的结构 */
+.sidebar-settings select, .sidebar-settings textarea {
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 1em;
-    width: 100%; /* 填充父容器 */
-    box-sizing: border-box; /* 包含 padding 和 border 在宽度内 */
+    width: 100%;
+    box-sizing: border-box;
+     /* 使用 CSS 变量 */
+    background-color: var(--main-content-bg); /* 输入框背景 */
+    color: var(--input-text); /* 输入框文字颜色 */
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-.sidebar-settings textarea { /* 调整选择器以匹配新的结构 */
-    resize: vertical; /* 只允许垂直调整大小 */
+.sidebar-settings textarea {
+    resize: vertical;
 }
+
+.sidebar-settings select::placeholder,
+.sidebar-settings textarea::placeholder {
+     color: var(--placeholder-text);
+}
+
 
 /* 侧边栏底部：聊天列表区域 */
 .sidebar-chat-list {
-    flex-grow: 1; /* 聊天列表区域占据剩余空间 */
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
-    overflow-y: auto; /* 允许聊天列表区域滚动 */
+    overflow-y: auto;
 }
 
 .sidebar-chat-list h2 {
      margin-top: 0;
     font-size: 1.2em;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--sidebar-h2-border);
     padding-bottom: 10px;
     margin-bottom: 10px;
+     transition: border-color 0.3s ease;
 }
 
 #chat-list {
     list-style: none;
     padding: 0;
-    margin: 0 0 10px 0; /* 列表下方留白 */
-    flex-grow: 1; /* 列表填充剩余空间 */
+    margin: 0 0 10px 0;
+    flex-grow: 1;
 }
 
 #chat-list li {
     padding: 10px;
     cursor: pointer;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--chat-list-item-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+     transition: background-color 0.2s ease, border-color 0.3s ease;
 }
 
 #chat-list li:hover {
-    background-color: #f0f0f0;
+    background-color: var(--chat-list-item-hover-bg);
 }
 
 #chat-list li.active {
-    background-color: #e9e9e9;
+    background-color: var(--chat-list-item-active-bg);
     font-weight: bold;
 }
 
@@ -118,53 +231,79 @@ body {
 }
 
 #chat-list li .delete-chat {
-    background-color: #f44336;
-    color: white;
+    /* 使用 CSS 变量 */
+    background-color: var(--button-danger-bg);
+    color: var(--button-danger-text);
     border: none;
     padding: 2px 6px;
     cursor: pointer;
     border-radius: 3px;
     font-size: 0.8em;
     margin-left: 10px;
-    flex-shrink: 0; /* 不压缩删除按钮 */
+    flex-shrink: 0;
+     transition: background-color 0.2s ease;
 }
 
 #chat-list li .delete-chat:hover {
-    background-color: #d32f2f;
+    background-color: var(--button-danger-hover-bg);
 }
 
 /* 新建聊天和清除上下文按钮样式 */
-#new-chat-btn, #clear-context-btn { /* ** 添加清除上下文按钮的 ID ** */
+#new-chat-btn, #clear-context-btn {
     display: block;
     width: 100%;
     padding: 10px;
-    background-color: #007bff;
-    color: white;
+    /* 使用 CSS 变量 */
+    background-color: var(--button-primary-bg);
+    color: var(--button-primary-text);
     border: none;
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
     margin-top: 10px;
     text-align: center;
+     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-#new-chat-btn:hover, #clear-context-btn:hover { /* ** 添加清除上下文按钮的 ID ** */
-    background-color: #0056b3;
+#new-chat-btn:hover, #clear-context-btn:hover {
+    background-color: var(--button-primary-hover-bg);
 }
 
 #clear-context-btn {
-     background-color: #6c757d; /* 不同的颜色 */
+     background-color: var(--button-secondary-bg); /* 不同的颜色 */
      margin-top: 10px;
+     color: var(--button-secondary-text);
 }
 
 #clear-context-btn:hover {
-     background-color: #5a6268;
+     background-color: var(--button-secondary-hover-bg);
+}
+
+/* 主题切换按钮样式 */
+#theme-toggle-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    /* 可以使用一个中性颜色或继承主要按钮样式 */
+    background-color: var(--button-secondary-bg); /* 示例 */
+    color: var(--button-secondary-text); /* 示例 */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 10px;
+    text-align: center;
+     transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#theme-toggle-btn:hover {
+     background-color: var(--button-secondary-hover-bg); /* 示例 */
 }
 
 
 /* 主内容区域样式 */
 .main-content {
-    flex-grow: 1; /* 占据剩余空间 */
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     padding: 20px;
@@ -174,26 +313,28 @@ body {
 .chat-box {
     display: flex;
     flex-direction: column;
-    height: 100%; /* 填充 main-content 的剩余空间 */
-    background-color: #fff;
+    height: 100%;
+    /* 使用 CSS 变量 */
+    background-color: var(--main-content-bg);
     border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    overflow: hidden; /* 防止内部内容溢出 */
+    box-shadow: 0 2px 4px var(--main-content-shadow);
+    overflow: hidden;
+     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* 消息列表样式 */
 .messages {
-    flex-grow: 1; /* 消息列表占据大部分空间 */
-    overflow-y: auto; /* 允许消息列表滚动 */
+    flex-grow: 1;
+    overflow-y: auto;
     padding: 15px;
-    display: flex; /* 使用 flexbox 垂直排列消息 */
+    display: flex;
     flex-direction: column;
-    gap: 10px; /* 消息之间的间隔 */
+    gap: 10px;
 }
 
 /* 单个消息样式 */
 .message {
-    max-width: 80%; /* 消息最大宽度 */
+    max-width: 80%;
     padding: 10px;
     border-radius: 10px;
 }
@@ -205,82 +346,101 @@ body {
 }
 
 .message .content {
-    white-space: pre-wrap; /* 保留换行和空格 */
-    word-wrap: break-word; /* 长单词换行 */
-    position: relative; /* 允许子元素（如复制按钮）绝对定位 */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    position: relative;
 }
 
 /* 用户消息样式 */
 .message.user {
-    align-self: flex-end; /* 右对齐 */
-    background-color: #007bff;
-    color: white;
+    align-self: flex-end;
+    /* 使用 CSS 变量 */
+    background-color: var(--message-bg-user);
+    color: var(--message-text-user);
+     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .message.user .sender {
-     color: rgba(255, 255, 255, 0.8); /* 用户名颜色稍微淡一点 */
+     color: var(--message-sender-user);
+     transition: color 0.3s ease;
 }
 
 
 /* AI 消息样式 */
 .message.ai {
-    align-self: flex-start; /* 左对齐 */
-    background-color: #e9e9eb;
-    color: #333;
+    align-self: flex-start;
+    /* 使用 CSS 变量 */
+    background-color: var(--message-bg-ai);
+    color: var(--message-text-ai);
+     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .message.ai .sender {
-     color: #555; /* AI 名颜色 */
+     color: var(--message-sender-ai);
+     transition: color 0.3s ease;
 }
 
 
 /* 输入区域样式 */
 .input-area {
     display: flex;
-    align-items: flex-end; /* 底部对齐 */
+    align-items: flex-end;
     padding: 15px;
-    border-top: 1px solid #eee;
-    background-color: #f9f9f9;
-    gap: 10px; /* 输入框和按钮的间隔 */
-    flex-shrink: 0; /* 输入区域不压缩 */
+    border-top: 1px solid var(--sidebar-border); /* 使用侧边栏边框颜色，保持一致 */
+    /* 使用 CSS 变量 */
+    background-color: var(--input-area-bg);
+    gap: 10px;
+    flex-shrink: 0;
+     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 #user-input {
-    flex-grow: 1; /* 输入框占据大部分空间 */
+    flex-grow: 1;
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     font-size: 1em;
-    resize: none; /* 禁止调整大小 */
-    max-height: 100px; /* 限制输入框最大高度 */
-    overflow-y: auto; /* 内容溢出时允许滚动 */
+    resize: none;
+    max-height: 100px;
+    overflow-y: auto;
+    /* 使用 CSS 变量 */
+     background-color: var(--main-content-bg); /* 输入框背景 */
+     color: var(--input-text); /* 输入框文字颜色 */
+     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
+
+#user-input::placeholder {
+     color: var(--placeholder-text);
+}
+
 
 /* 文件上传区域样式 */
 .file-upload-area {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    flex-shrink: 0; /* 不压缩 */
+    flex-shrink: 0;
 }
 
 .upload-button {
     display: inline-block;
     padding: 8px 12px;
-    background-color: #28a745;
-    color: white;
+    /* 使用 CSS 变量 */
+    background-color: var(--button-success-bg);
+    color: var(--button-success-text);
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.9em;
     margin-bottom: 5px;
+     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .upload-button:hover {
-     background-color: #218838;
+     background-color: var(--button-success-hover-bg);
 }
 
 #file-upload {
-    display: none; /* 隐藏实际的文件输入框 */
+    display: none;
 }
 
 #uploaded-files-list {
@@ -288,7 +448,8 @@ body {
     padding: 0;
     margin: 0;
     font-size: 0.8em;
-    color: #555;
+    /* 使用 CSS 变量 */
+    color: var(--message-sender-ai); /* 使用 AI sender 颜色 */
 }
 
 #uploaded-files-list li {
@@ -299,106 +460,124 @@ body {
 }
 
 #uploaded-files-list li .remove-file {
-    background-color: #dc3545;
-    color: white;
+    /* 使用 CSS 变量 */
+    background-color: var(--button-danger-bg);
+    color: var(--button-danger-text);
     border: none;
     padding: 1px 4px;
     cursor: pointer;
     border-radius: 3px;
     font-size: 0.7em;
     flex-shrink: 0;
+     transition: background-color 0.2s ease;
 }
 
 #uploaded-files-list li .remove-file:hover {
-    background-color: #c82333;
+    background-color: var(--button-danger-hover-bg);
 }
 
 
 #send-btn, #generate-image-btn {
     padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
+    /* 使用 CSS 变量 */
+    background-color: var(--button-primary-bg);
+    color: var(--button-primary-text);
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 1em;
-    flex-shrink: 0; /* 不压缩 */
+    flex-shrink: 0;
+     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #send-btn:hover, #generate-image-btn:hover {
-    background-color: #0056b3;
+    background-color: var(--button-primary-hover-bg);
 }
 
 #generate-image-btn {
-     background-color: #ffc107;
-     color: #212529;
+     /* 使用 CSS 变量 */
+     background-color: var(--button-warning-bg);
+     color: var(--button-warning-text);
 }
 
 #generate-image-btn:hover {
-     background-color: #e0a800;
+     background-color: var(--button-warning-hover-bg);
 }
 
 #send-btn:disabled, #generate-image-btn:disabled {
-     background-color: #cccccc;
+     /* 使用 CSS 变量 */
+     background-color: var(--disabled-bg);
+     color: var(--disabled-text);
      cursor: not-allowed;
+     transition: none; /* 禁用过渡 */
 }
 
 
 /* Markdown 渲染样式 */
 .message .content pre {
-    background-color: #f0f0f0; /* 可以用 Prism 的主题背景 */
+    /* 使用 CSS 变量 */
+    background-color: var(--code-bg);
+    border: 1px solid var(--code-border); /* 添加边框 */
     padding: 10px;
     border-radius: 5px;
-    overflow-x: auto; /* 代码块水平滚动 */
-    position: relative; /* 用于定位复制按钮 */
-    margin-top: 10px; /* 代码块上方留白 */
-    margin-bottom: 10px; /* 代码块下方留白 */
+    overflow-x: auto;
+    position: relative;
+    margin-top: 10px;
+    margin-bottom: 10px;
+     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .message .content pre code {
     font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
     /* Prism.js 会添加自己的 class 和样式，这里是基础 */
+     color: var(--message-text-ai); /* 代码文字颜色，可以继承 AI 消息颜色 */
 }
 
 .message .content blockquote {
-    border-left: 4px solid #ccc;
+    /* 使用 CSS 变量 */
+    border-left: 4px solid var(--blockquote-border);
     padding-left: 10px;
-    color: #666;
+    color: var(--blockquote-text);
     margin: 10px 0;
+     transition: border-color 0.3s ease, color 0.3s ease;
 }
 
 .message .content table {
     border-collapse: collapse;
     margin: 10px 0;
-    width: 100%; /* 表格宽度适应容器 */
+    width: 100%;
 }
 
 .message .content th,
 .message .content td {
-    border: 1px solid #ddd;
+    border: 1px solid var(--chat-list-item-border); /* 使用聊天列表项边框颜色 */
     padding: 8px;
     text-align: left;
+     transition: border-color 0.3s ease;
 }
 
 .message .content th {
-    background-color: #f2f2f2;
+    /* 使用 CSS 变量 */
+    background-color: var(--chat-list-item-active-bg); /* 使用激活的聊天列表项背景色 */
+     transition: background-color 0.3s ease;
 }
 
 /* 代码块复制按钮样式 */
 .copy-code-button {
     position: absolute;
-    top: 5px; /* 调整位置 */
-    right: 5px; /* 调整位置 */
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
+    top: 5px;
+    right: 5px;
+    /* 使用 CSS 变量 */
+    background-color: var(--copy-button-bg);
+    color: var(--copy-button-text);
     border: none;
     border-radius: 3px;
     padding: 3px 8px;
     cursor: pointer;
     font-size: 0.8em;
     opacity: 0; /* 默认隐藏 */
-    transition: opacity 0.2s ease-in-out;
-    z-index: 1; /* 确保在代码块上方 */
+    transition: opacity 0.2s ease-in-out, background-color 0.2s ease, color 0.2s ease;
+    z-index: 1;
 }
 
 .message .content pre:hover .copy-code-button {
@@ -406,25 +585,31 @@ body {
 }
 
 .copy-code-button:hover {
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: var(--copy-button-hover-bg);
 }
 
 .copy-code-button:active {
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: var(--copy-button-active-bg);
 }
 
 /* 复制成功提示 */
+.copy-code-button.copied {
+     background-color: var(--copied-bg);
+     color: var(--copied-text);
+}
+
 .copy-code-button.copied::after {
     content: 'Copied!';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #28a745;
-    color: white;
+    /* 使用 CSS 变量 */
+    background-color: var(--copied-bg); /* 保持一致 */
+    color: var(--copied-text); /* 保持一致 */
     padding: 2px 5px;
     border-radius: 3px;
     font-size: 0.7em;
     white-space: nowrap;
-    pointer-events: none; /* 不影响鼠标事件 */
+    pointer-events: none;
 }

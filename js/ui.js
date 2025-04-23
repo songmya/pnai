@@ -1,6 +1,6 @@
 // js/ui.js
 
-import { sendMessage, currentChatId, chats } from './main.js';
+import { sendMessage, currentChatId, chats, clearCurrentChatContext, toggleTheme } from './main.js'; // 导入 toggleTheme 函数
 import { generateUniqueId } from './utils.js';
 
 /**
@@ -28,14 +28,24 @@ export function initializeUI() {
         }
     });
 
-    // ** 新增：绑定清除上下文按钮事件 **
+    // 绑定清除上下文按钮事件
      const clearContextBtn = document.getElementById('clear-context-btn');
      if (clearContextBtn) {
-         clearContextBtn.addEventListener('click', clearCurrentChatContext);
+         clearContextBtn.addEventListener('click', clearCurrentChatContext); // 调用 main.js 中的函数
          console.log('Binding clear context button event');
      } else {
          console.error("Clear context button with ID 'clear-context-btn' not found.");
      }
+
+    // ** 新增：绑定主题切换按钮事件 **
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme); // 调用 main.js 中的函数
+        console.log('Binding theme toggle button event');
+    } else {
+        console.error("Theme toggle button with ID 'theme-toggle-btn' not found.");
+    }
+
 
      // 其他 UI 事件，如设置区域的 change 事件在 main.js 中绑定
      // 图片生成按钮的事件监听器在 main.js 中绑定了
@@ -87,7 +97,9 @@ export function addMessageToUI(message, shouldScroll) {
                  let renderedHtml = marked.parse(message.content || '');
                  contentElement.innerHTML = renderedHtml;
                  addCopyButtonsToCodeBlocks(contentElement); // ** 新增：添加复制按钮 **
-                 Prism.highlightAllUnder(contentElement); // ** 新增：代码高亮 **
+                 // Prism.js 高亮在渲染完成后进行，防止流式更新问题
+                 // 在 main.js 中的 onComplete/onError 回调或 renderMessages 中调用 Prism.highlightAllUnder
+                 // Prism.highlightAllUnder(contentElement); // 暂时移除这里
              } else {
                  contentElement.textContent = message.content || '';
              }
@@ -139,34 +151,21 @@ export function updateStreamingMessageUI(messageElement, content) {
     if (!messageElement) return;
     const contentElement = messageElement.querySelector('.content');
     if (contentElement) {
-         // 使用 innerHTML 并渲染 Markdown
+         // 在流式更新时，只更新文本内容（或简单的HTML），避免复杂的 Markdown 渲染和高亮，
+         // 它们应该在流结束后一次性处理。
+         // 临时方案：每次更新都进行 Markdown 渲染，但代码高亮和复制按钮延迟处理
          if (typeof marked !== 'undefined') {
-             let renderedHtml = marked.parse(content);
-              // Important: While streaming, we might be getting partial code blocks.
-              // Adding copy buttons and highlighting on every chunk might be inefficient
-              // or cause flickering/issues with partial Markdown.
-              // A better approach for streaming might be to update the textContent initially,
-              // and then process/re-render with Markdown, highlighting, and copy buttons
-              // only AFTER the stream is complete (in the onComplete callback in main.js).
-              // However, to show the text progressively, we'll update innerHTML but
-              // delay adding copy buttons and highlighting until the message is final.
-              // For now, let's stick to just updating innerHTML with Markdown.
-              // Adding copy buttons/highlighting on every update would require more complex logic
-              // to avoid duplicating buttons or interfering with Prism.js.
-              // For this example, we'll add copy buttons/highlighting in addMessageToUI
-              // which is called when rendering existing messages, or when a *final* message
-              // is added after streaming.
-
-              // A simpler intermediate approach during streaming: just update the text.
-              // Or, update HTML but defer post-processing. Let's update HTML for now.
-              contentElement.innerHTML = renderedHtml;
-
-              // We won't add copy buttons/highlighting here during streaming.
-              // It will be applied when the final message is added/updated in main.js
-
+              contentElement.innerHTML = marked.parse(content);
+             // 延迟添加复制按钮和高亮，防止频繁操作导致问题
+             // setTimeout(() => {
+             //     addCopyButtonsToCodeBlocks(contentElement);
+             //     Prism.highlightAllUnder(contentElement);
+             // }, 50); // 短暂延迟
          } else {
              contentElement.textContent = content;
          }
+
+
          // 确保滚动到底部
          const messagesListElement = document.getElementById('messages-list');
          if (messagesListElement) {
@@ -182,7 +181,7 @@ export function updateStreamingMessageUI(messageElement, content) {
  * 在 Markdown 渲染后的代码块中添加复制按钮
  * @param {Element} containerElement - 包含 Markdown 内容的 DOM 元素 (.content)
  */
-function addCopyButtonsToCodeBlocks(containerElement) {
+export function addCopyButtonsToCodeBlocks(containerElement) {
      const codeBlocks = containerElement.querySelectorAll('pre > code'); // 查找 <pre><code> 结构
 
      codeBlocks.forEach(codeElement => {
@@ -253,7 +252,8 @@ export function updateMessageWithImage(messageElement, imageUrl, altText = '') {
              const promptText = document.createElement('p');
              promptText.textContent = `提示词: ${altText}`;
              promptText.style.fontSize = '0.9em';
-             promptText.style.color = '#555';
+             // promptText.style.color = '#555'; // 使用 CSS 变量控制颜色
+              promptText.style.color = 'var(--message-sender-ai)'; // 使用 AI sender 颜色变量
              contentElement.appendChild(promptText);
         }
 
@@ -299,7 +299,8 @@ export function updateMessageWithAudio(messageElement, audioUrl, description = '
              const descriptionText = document.createElement('p');
              descriptionText.textContent = `文本: ${description}`;
              descriptionText.style.fontSize = '0.9em';
-             descriptionText.style.color = '#555';
+             // descriptionText.style.color = '#555'; // 使用 CSS 变量控制颜色
+              descriptionText.style.color = 'var(--message-sender-ai)'; // 使用 AI sender 颜色变量
              contentElement.appendChild(descriptionText);
          }
 
@@ -545,12 +546,16 @@ export function clearMessagesUI() {
     }
 }
 
-
-// 注意：更新语音选择 UI 的函数放在 main.js 中，因为它与聊天数据和设置相关
-// 但 UI 的实际操作可以在 ui.js 中实现，并通过 main.js 调用
-// 假设 main.js 中的 updateVoiceSelectUI 函数会调用这里的 DOM 操作
+/**
+ * 更新主题切换按钮的文本
+ * @param {string} theme - 当前主题 ('light' or 'dark')
+ */
+export function updateThemeToggleButton(theme) {
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if (themeToggleBtn) {
+        themeToggleBtn.textContent = `切换模式 (当前: ${theme === 'dark' ? '黑夜' : '白天'})`;
+    }
+}
 
 // 导出核心函数
-// 注意：这里的导出可能需要根据 main.js 的 import 来调整
-// 例如，如果 main.js 需要调用这里的 clearMessagesUI，则需要导出它
-export { addCopyButtonsToCodeBlocks }; // 导出新增的函数
+export { addCopyButtonsToCodeBlocks,  updateThemeToggleButton }; // 导出新增的函数
