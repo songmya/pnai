@@ -1,0 +1,333 @@
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    display: flex;
+    height: 100vh;
+    overflow: hidden; /* 防止整个页面滚动 */
+}
+
+.app-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* 侧边栏样式 */
+.sidebar {
+    width: 250px;
+    background-color: #fff;
+    border-right: 1px solid #ddd;
+    padding: 20px;
+    overflow-y: auto; /* 允许侧边栏滚动 */
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar h2 {
+    margin-top: 0;
+    font-size: 1.2em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+#chat-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+    flex-grow: 1; /* 列表填充剩余空间 */
+}
+
+#chat-list li {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#chat-list li:hover {
+    background-color: #f0f0f0;
+}
+
+#chat-list li.active {
+    background-color: #e9e9e9;
+    font-weight: bold;
+}
+
+#chat-list li span {
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#chat-list li .delete-chat {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 0.8em;
+    margin-left: 10px;
+}
+
+#chat-list li .delete-chat:hover {
+    background-color: #d32f2f;
+}
+
+
+#new-chat-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    margin-top: 10px;
+}
+
+#new-chat-btn:hover {
+    background-color: #0056b3;
+}
+
+/* 主内容区域样式 */
+.main-content {
+    flex-grow: 1; /* 占据剩余空间 */
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+/* 设置区域样式 */
+.settings-area {
+    background-color: #fff;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.model-select, .system-prompt {
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* 平均分配空间 */
+}
+
+.settings-area label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.settings-area select, .settings-area textarea {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    width: 100%; /* 填充父容器 */
+    box-sizing: border-box; /* 包含 padding 和 border 在宽度内 */
+}
+
+.settings-area textarea {
+    resize: vertical; /* 只允许垂直调整大小 */
+}
+
+
+/* 聊天框样式 */
+.chat-box {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* 填充 main-content 的剩余空间 */
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* 防止内部内容溢出 */
+}
+
+/* 消息列表样式 */
+.messages {
+    flex-grow: 1; /* 消息列表占据大部分空间 */
+    overflow-y: auto; /* 允许消息列表滚动 */
+    padding: 15px;
+    display: flex; /* 使用 flexbox 垂直排列消息 */
+    flex-direction: column;
+    gap: 10px; /* 消息之间的间隔 */
+}
+
+/* 单个消息样式 */
+.message {
+    max-width: 80%; /* 消息最大宽度 */
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.message .sender {
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.message .content {
+    white-space: pre-wrap; /* 保留换行和空格 */
+    word-wrap: break-word; /* 长单词换行 */
+}
+
+/* 用户消息样式 */
+.message.user {
+    align-self: flex-end; /* 右对齐 */
+    background-color: #007bff;
+    color: white;
+}
+
+.message.user .sender {
+     color: rgba(255, 255, 255, 0.8); /* 用户名颜色稍微淡一点 */
+}
+
+
+/* AI 消息样式 */
+.message.ai {
+    align-self: flex-start; /* 左对齐 */
+    background-color: #e9e9eb;
+    color: #333;
+}
+
+.message.ai .sender {
+     color: #555; /* AI 名颜色 */
+}
+
+
+/* 输入区域样式 */
+.input-area {
+    display: flex;
+    align-items: flex-end; /* 底部对齐 */
+    padding: 15px;
+    border-top: 1px solid #eee;
+    background-color: #f9f9f9;
+    gap: 10px; /* 输入框和按钮的间隔 */
+}
+
+#user-input {
+    flex-grow: 1; /* 输入框占据大部分空间 */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    resize: none; /* 禁止调整大小 */
+    max-height: 100px; /* 限制输入框最大高度 */
+    overflow-y: auto; /* 内容溢出时允许滚动 */
+}
+
+/* 文件上传区域样式 */
+.file-upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.upload-button {
+    display: inline-block;
+    padding: 8px 12px;
+    background-color: #28a745;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.upload-button:hover {
+     background-color: #218838;
+}
+
+#file-upload {
+    display: none; /* 隐藏实际的文件输入框 */
+}
+
+#uploaded-files-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.8em;
+    color: #555;
+}
+
+#uploaded-files-list li {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 3px;
+}
+
+#uploaded-files-list li .remove-file {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 1px 4px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 0.7em;
+}
+
+#uploaded-files-list li .remove-file:hover {
+    background-color: #c82333;
+}
+
+
+#send-btn {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+#send-btn:hover {
+    background-color: #0056b3;
+}
+
+
+/* Markdown 渲染样式 (示例，可以根据需要调整) */
+.message .content pre {
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto; /* 代码块水平滚动 */
+}
+
+.message .content code {
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+}
+
+.message .content blockquote {
+    border-left: 4px solid #ccc;
+    padding-left: 10px;
+    color: #666;
+    margin: 10px 0;
+}
+
+.message .content table {
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+.message .content th,
+.message .content td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.message .content th {
+    background-color: #f2f2f2;
+}

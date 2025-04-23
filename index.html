@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat App</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边栏 - 聊天会话管理 -->
+        <div class="sidebar">
+            <h2>聊天列表</h2>
+            <ul id="chat-list">
+                <!-- 聊天列表项将由 JavaScript 动态生成 -->
+            </ul>
+            <button id="new-chat-btn">+ 新建聊天</button>
+        </div>
+
+        <!-- 主聊天区域 -->
+        <div class="main-content">
+            <!-- 设置区域 - 模型选择和系统提示词 -->
+            <div class="settings-area">
+                <div class="model-select">
+                    <label for="model-select">选择模型:</label>
+                    <select id="model-select">
+                        <option value="model-a">模型 A</option>
+                        <option value="model-b">模型 B</option>
+                        <!-- 更多模型选项 -->
+                    </select>
+                </div>
+                <div class="system-prompt">
+                    <label for="system-prompt">系统提示词:</label>
+                    <textarea id="system-prompt" rows="3" placeholder="输入系统提示词..."></textarea>
+                </div>
+            </div>
+
+            <!-- 当前聊天框 -->
+            <div id="current-chat-box" class="chat-box">
+                <div class="messages" id="messages-list">
+                    <!-- 消息将由 JavaScript 动态生成 -->
+                </div>
+
+                <div class="input-area">
+                    <textarea id="user-input" placeholder="输入你的消息..."></textarea>
+                    <div class="file-upload-area">
+                        <label for="file-upload" class="upload-button">上传文件</label>
+                        <input type="file" id="file-upload" multiple>
+                        <ul id="uploaded-files-list">
+                            <!-- 上传的文件列表将由 JavaScript 动态生成 -->
+                        </ul>
+                    </div>
+                    <button id="send-btn">发送</button>
+                </div>
+            </div>
+
+            <!-- 模板 - 用于创建新的聊天框、消息、文件列表项等 -->
+            <template id="chat-template">
+                <div class="chat-box">
+                    <div class="messages"></div>
+                    <div class="input-area">
+                        <textarea class="user-input" placeholder="输入你的消息..."></textarea>
+                        <div class="file-upload-area">
+                            <label class="upload-button">上传文件</label>
+                            <input type="file" multiple>
+                            <ul class="uploaded-files-list"></ul>
+                        </div>
+                        <button class="send-btn">发送</button>
+                    </div>
+                </div>
+            </template>
+
+            <template id="message-template">
+                <div class="message">
+                    <div class="sender"></div>
+                    <div class="content"></div>
+                </div>
+            </template>
+
+            <template id="file-item-template">
+                <li>
+                    <span></span>
+                    <button class="remove-file">x</button>
+                </li>
+            </template>
+
+             <template id="chat-list-item-template">
+                <li>
+                    <span></span>
+                    <button class="delete-chat">x</button>
+                </li>
+            </template>
+
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/utils.js"></script>
+     <!-- 如果使用 Markdown 库，在这里引用 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+</body>
+</html>
