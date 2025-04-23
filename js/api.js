@@ -70,7 +70,7 @@ export async function callAIApi(prompt, systemPrompt, model, uploadedFiles, chat
      // 添加聊天历史 (过滤掉图片和音频消息)
      if (chatMessages && Array.isArray(chatMessages)) {
          // 限制发送的历史记录数量，避免过长
-         const historyLength = 20; // 根据需要调整
+         const historyLength = 10; // 根据需要调整
          const recentMessages = chatMessages.slice(-historyLength);
 
          recentMessages.forEach(msg => {
