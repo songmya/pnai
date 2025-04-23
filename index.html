@@ -5,28 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chat App</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- 引入 Prism.js 用于代码高亮（可选，但可以增加代码块的可读性） -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- 侧边栏 - 聊天会话管理 -->
+        <!-- 侧边栏 - 聊天会话管理 + 设置 -->
         <div class="sidebar">
-            <h2>聊天列表</h2>
-            <ul id="chat-list">
-                <!-- 聊天列表项将由 JavaScript 动态生成 -->
-            </ul>
-            <button id="new-chat-btn">+ 新建聊天</button>
-        </div>
-
-        <!-- 主聊天区域 -->
-        <div class="main-content">
-            <!-- 设置区域 - 模型选择、系统提示词、语音选择 -->
-            <div class="settings-area">
-                <div class="settings-group">
+            <!-- 侧边栏顶部：设置区域 -->
+            <div class="sidebar-settings">
+                 <h2>设置</h2>
+                 <div class="settings-group">
                     <label for="model-select">选择模型:</label>
                     <select id="model-select">
                         <!-- 模型选项将由 JavaScript 动态填充 -->
-                         <!-- <option value="model-a">模型 A</option> -->
-                         <!-- <option value="model-b">模型 B</option> -->
                     </select>
                 </div>
                 <div class="settings-group">
@@ -34,19 +26,32 @@
                     <textarea id="system-prompt" rows="3" placeholder="输入系统提示词..."></textarea>
                 </div>
 
-                <!-- ** 添加语音选择区域 ** -->
+                <!-- 添加语音选择区域 -->
                 <div class="settings-group" id="voice-select-container" style="display: none;">
                     <label for="voice-select">选择语音:</label>
                     <select id="voice-select">
+                         <!-- 语音选项将由 JavaScript 动态填充或固定 -->
                         <option value="voice1">语音 1</option>
                         <option value="voice2">语音 2</option>
-                        <!-- Pollinations.ai 可能支持更多语音 -->
                     </select>
                 </div>
-                <!-- ** 语音选择区域结束 ** -->
-
             </div>
 
+            <!-- 侧边栏底部：聊天列表 -->
+            <div class="sidebar-chat-list">
+                 <h2>聊天列表</h2>
+                <ul id="chat-list">
+                    <!-- 聊天列表项将由 JavaScript 动态生成 -->
+                </ul>
+                 <button id="new-chat-btn">+ 新建聊天</button>
+                 <!-- ** 新增：清除上下文按钮 ** -->
+                 <button id="clear-context-btn">清除当前聊天上下文</button>
+            </div>
+
+        </div>
+
+        <!-- 主聊天区域 -->
+        <div class="main-content">
             <!-- 当前聊天框 -->
             <div id="current-chat-box" class="chat-box">
                 <div class="messages" id="messages-list">
@@ -62,36 +67,21 @@
                             <!-- 上传的文件列表将由 JavaScript 动态生成 -->
                         </ul>
                     </div>
-                    <!-- ** 添加图片生成按钮 ** -->
+                    <!-- 添加图片生成按钮 -->
                     <button id="generate-image-btn">生成图片</button>
-                    <!-- ** 图片生成按钮结束 ** -->
+                    <!-- 发送按钮 -->
                     <button id="send-btn">发送</button>
                 </div>
             </div>
 
-            <!-- 模板 - 用于创建新的聊天框、消息、文件列表项等 -->
-            <!-- 注意：在单页面应用中，只显示一个 chat-box，这个 chat-template 可能用不到，
-                 除非你的设计是切换不同的 DOM 元素来代表不同的聊天会话 -->
-            <!-- 保留模板以备用，但确保 ID 与实际使用的元素匹配 -->
-            <template id="chat-template">
-                <div class="chat-box">
-                    <div class="messages"></div>
-                    <div class="input-area">
-                        <textarea class="user-input" placeholder="输入你的消息..."></textarea>
-                        <div class="file-upload-area">
-                            <label class="upload-button">上传文件</label>
-                            <input type="file" multiple>
-                            <ul class="uploaded-files-list"></ul>
-                        </div>
-                        <button class="send-btn">发送</button>
-                    </div>
-                </div>
-            </template>
-
+            <!-- 模板 - 用于创建新的消息、文件列表项等 -->
+            <!-- 注意：chat-template 和 chat-list-item-template 已经在使用，保留 -->
             <template id="message-template">
                 <div class="message">
                     <div class="sender"></div>
-                    <div class="content"></div>
+                    <div class="content">
+                        <!-- Markdown 渲染的内容 -->
+                    </div>
                     <!-- TODO: 如果需要在消息气泡内显示文件，这里也需要结构 -->
                     <!-- <div class="message-files"></div> -->
                 </div>
@@ -107,7 +97,7 @@
              <template id="chat-list-item-template">
                 <li>
                     <span></span>
-                    <button class="delete-chat">x</button>
+                    <button class="delete-chat" title="删除聊天">x</button>
                 </li>
             </template>
 
@@ -116,6 +106,14 @@
 
     <!-- 引入 Marked.js (用于 Markdown 渲染) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 引入 Prism.js (用于代码高亮) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <!-- 引入 Prism.js 支持的语言（例如 JavaScript, CSS, HTML） -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-html.min.js"></script>
+    <!-- 添加其他需要的语言组件 -->
+
 
     <!-- 引入您的 JavaScript 模块 -->
     <script type="module" src="js/utils.js"></script>

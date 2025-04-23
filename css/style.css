@@ -16,26 +16,77 @@ body {
 
 /* 侧边栏样式 */
 .sidebar {
-    width: 250px;
+    width: 280px; /* 适当增大侧边栏宽度 */
     background-color: #fff;
     border-right: 1px solid #ddd;
     padding: 20px;
-    overflow-y: auto; /* 允许侧边栏滚动 */
     display: flex;
     flex-direction: column;
+    overflow-y: hidden; /* 允许侧边栏内部的子区域滚动，但侧边栏本身不滚动 */
 }
 
-.sidebar h2 {
+/* 侧边栏顶部：设置区域 */
+.sidebar-settings {
+    flex-shrink: 0; /* 不压缩 */
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    overflow-y: auto; /* 允许设置区域滚动 */
+    max-height: 40%; /* 限制设置区域最大高度，根据需要调整 */
+}
+
+.sidebar-settings h2 {
     margin-top: 0;
     font-size: 1.2em;
     border-bottom: 1px solid #eee;
     padding-bottom: 10px;
+    margin-bottom: 10px; /* 增加 h2 和 group 之间的间距 */
+}
+
+.settings-group {
+    margin-bottom: 15px; /* 增加设置组之间的间距 */
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-area label { /* 调整选择器以匹配新的结构 */
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.settings-area select, .settings-area textarea { /* 调整选择器以匹配新的结构 */
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    width: 100%; /* 填充父容器 */
+    box-sizing: border-box; /* 包含 padding 和 border 在宽度内 */
+}
+
+.settings-area textarea { /* 调整选择器以匹配新的结构 */
+    resize: vertical; /* 只允许垂直调整大小 */
+}
+
+/* 侧边栏底部：聊天列表区域 */
+.sidebar-chat-list {
+    flex-grow: 1; /* 聊天列表区域占据剩余空间 */
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* 允许聊天列表区域滚动 */
+}
+
+.sidebar-chat-list h2 {
+     margin-top: 0;
+    font-size: 1.2em;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
 }
 
 #chat-list {
     list-style: none;
     padding: 0;
-    margin: 10px 0;
+    margin: 0 0 10px 0; /* 列表下方留白 */
     flex-grow: 1; /* 列表填充剩余空间 */
 }
 
@@ -73,14 +124,15 @@ body {
     border-radius: 3px;
     font-size: 0.8em;
     margin-left: 10px;
+    flex-shrink: 0; /* 不压缩删除按钮 */
 }
 
 #chat-list li .delete-chat:hover {
     background-color: #d32f2f;
 }
 
-
-#new-chat-btn {
+/* 新建聊天和清除上下文按钮样式 */
+#new-chat-btn, #clear-context-btn { /* ** 添加清除上下文按钮的 ID ** */
     display: block;
     width: 100%;
     padding: 10px;
@@ -91,11 +143,22 @@ body {
     cursor: pointer;
     font-size: 1em;
     margin-top: 10px;
+    text-align: center;
 }
 
-#new-chat-btn:hover {
+#new-chat-btn:hover, #clear-context-btn:hover { /* ** 添加清除上下文按钮的 ID ** */
     background-color: #0056b3;
 }
+
+#clear-context-btn {
+     background-color: #6c757d; /* 不同的颜色 */
+     margin-top: 10px;
+}
+
+#clear-context-btn:hover {
+     background-color: #5a6268;
+}
+
 
 /* 主内容区域样式 */
 .main-content {
@@ -104,43 +167,6 @@ body {
     flex-direction: column;
     padding: 20px;
 }
-
-/* 设置区域样式 */
-.settings-area {
-    background-color: #fff;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-}
-
-.model-select, .system-prompt {
-    display: flex;
-    flex-direction: column;
-    flex: 1; /* 平均分配空间 */
-}
-
-.settings-area label {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.settings-area select, .settings-area textarea {
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1em;
-    width: 100%; /* 填充父容器 */
-    box-sizing: border-box; /* 包含 padding 和 border 在宽度内 */
-}
-
-.settings-area textarea {
-    resize: vertical; /* 只允许垂直调整大小 */
-}
-
 
 /* 聊天框样式 */
 .chat-box {
@@ -179,6 +205,7 @@ body {
 .message .content {
     white-space: pre-wrap; /* 保留换行和空格 */
     word-wrap: break-word; /* 长单词换行 */
+    position: relative; /* 允许子元素（如复制按钮）绝对定位 */
 }
 
 /* 用户消息样式 */
@@ -213,6 +240,7 @@ body {
     border-top: 1px solid #eee;
     background-color: #f9f9f9;
     gap: 10px; /* 输入框和按钮的间隔 */
+    flex-shrink: 0; /* 输入区域不压缩 */
 }
 
 #user-input {
@@ -231,6 +259,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    flex-shrink: 0; /* 不压缩 */
 }
 
 .upload-button {
@@ -275,6 +304,7 @@ body {
     cursor: pointer;
     border-radius: 3px;
     font-size: 0.7em;
+    flex-shrink: 0;
 }
 
 #uploaded-files-list li .remove-file:hover {
@@ -282,7 +312,7 @@ body {
 }
 
 
-#send-btn, #generate-image-btn { /* ** 添加图片生成按钮的 ID ** */
+#send-btn, #generate-image-btn {
     padding: 10px 20px;
     background-color: #007bff;
     color: white;
@@ -290,14 +320,15 @@ body {
     border-radius: 4px;
     cursor: pointer;
     font-size: 1em;
+    flex-shrink: 0; /* 不压缩 */
 }
 
-#send-btn:hover, #generate-image-btn:hover { /* ** 添加图片生成按钮的 ID ** */
+#send-btn:hover, #generate-image-btn:hover {
     background-color: #0056b3;
 }
 
 #generate-image-btn {
-     background-color: #ffc107; /* 例如，使用不同的颜色区分 */
+     background-color: #ffc107;
      color: #212529;
 }
 
@@ -305,17 +336,26 @@ body {
      background-color: #e0a800;
 }
 
+#send-btn:disabled, #generate-image-btn:disabled {
+     background-color: #cccccc;
+     cursor: not-allowed;
+}
 
-/* Markdown 渲染样式 (示例，可以根据需要调整) */
+
+/* Markdown 渲染样式 */
 .message .content pre {
-    background-color: #f0f0f0;
+    background-color: #f0f0f0; /* 可以用 Prism 的主题背景 */
     padding: 10px;
     border-radius: 5px;
     overflow-x: auto; /* 代码块水平滚动 */
+    position: relative; /* 用于定位复制按钮 */
+    margin-top: 10px; /* 代码块上方留白 */
+    margin-bottom: 10px; /* 代码块下方留白 */
 }
 
-.message .content code {
+.message .content pre code {
     font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    /* Prism.js 会添加自己的 class 和样式，这里是基础 */
 }
 
 .message .content blockquote {
@@ -328,6 +368,7 @@ body {
 .message .content table {
     border-collapse: collapse;
     margin: 10px 0;
+    width: 100%; /* 表格宽度适应容器 */
 }
 
 .message .content th,
@@ -339,4 +380,49 @@ body {
 
 .message .content th {
     background-color: #f2f2f2;
+}
+
+/* 代码块复制按钮样式 */
+.copy-code-button {
+    position: absolute;
+    top: 5px; /* 调整位置 */
+    right: 5px; /* 调整位置 */
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: 0.8em;
+    opacity: 0; /* 默认隐藏 */
+    transition: opacity 0.2s ease-in-out;
+    z-index: 1; /* 确保在代码块上方 */
+}
+
+.message .content pre:hover .copy-code-button {
+    opacity: 1; /* 鼠标悬停时显示 */
+}
+
+.copy-code-button:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.copy-code-button:active {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+/* 复制成功提示 */
+.copy-code-button.copied::after {
+    content: 'Copied!';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #28a745;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.7em;
+    white-space: nowrap;
+    pointer-events: none; /* 不影响鼠标事件 */
 }

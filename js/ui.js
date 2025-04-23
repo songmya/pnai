@@ -23,18 +23,26 @@ export function initializeUI() {
             const listItem = event.target.closest('li');
             if (listItem) {
                 const fileId = listItem.dataset.fileId;
-                // TODO: 需要 main.js 提供一个函数来移除文件数据并保存
-                 removeUploadedFile(fileId); // 暂时保留 ui.js 直接移除
+                 removeUploadedFile(fileId); // 调用 UI 移除，数据移除和保存由 main.js 处理
             }
         }
     });
-    // 其他 UI 事件，如设置区域的 change 事件在 main.js 中绑定
-    // 图片生成按钮的事件监听器在 main.js 中绑定了
+
+    // ** 新增：绑定清除上下文按钮事件 **
+     const clearContextBtn = document.getElementById('clear-context-btn');
+     if (clearContextBtn) {
+         clearContextBtn.addEventListener('click', clearCurrentChatContext);
+         console.log('Binding clear context button event');
+     } else {
+         console.error("Clear context button with ID 'clear-context-btn' not found.");
+     }
+
+     // 其他 UI 事件，如设置区域的 change 事件在 main.js 中绑定
+     // 图片生成按钮的事件监听器在 main.js 中绑定了
 }
 
 /**
  * 切换到指定的聊天框 UI
- * ... (保持不变) ...
  */
 export function switchChatUI(chatId) {
     document.querySelectorAll('#chat-list li.active').forEach(item => {
@@ -45,20 +53,25 @@ export function switchChatUI(chatId) {
     if (currentChatItem) {
         currentChatItem.classList.add('active');
     }
+    // 切换聊天时，清空消息列表 UI，由 renderMessages 重新渲染
+    const messagesListElement = document.getElementById('messages-list');
+     if (messagesListElement) {
+        messagesListElement.innerHTML = '';
+     }
 }
 
 
 /**
  * 添加消息到当前聊天框的 UI (非流式或首次添加流式消息)
- * @param {object} message - 消息对象 { sender: 'user'|'ai', content: '...', files: [], type?: 'text' | 'image' | 'audio', url?: string } // 增加了 type 和 url 属性的可能
+ * @param {object} message - 消息对象 { sender: 'user'|'ai', content: '...', files: [], type?: 'text' | 'image' | 'audio', url?: string }
  * @param {boolean} shouldScroll - 是否滚动到底部
  * @returns {Element} 返回新创建的消息 DOM 元素
  */
 export function addMessageToUI(message, shouldScroll) {
     const messagesListElement = document.getElementById('messages-list');
     const messageTemplate = document.getElementById('message-template');
-    if (!messageTemplate) {
-         console.error("Error: Message template element with ID 'message-template' not found.");
+    if (!messageTemplate || !messagesListElement) {
+         console.error("Error: Message template or messages list element not found.");
          return null; // 返回 null 表示创建失败
     }
     const messageElement = messageTemplate.content.cloneNode(true).querySelector('.message');
@@ -68,19 +81,19 @@ export function addMessageToUI(message, shouldScroll) {
 
     const contentElement = messageElement.querySelector('.content');
     if (contentElement) {
-        // 对于文本消息，渲染 Markdown
-        if (message.type === 'text' || message.type === undefined) { // 如果没有 type 或 type 是 text
+        // 对于文本消息，渲染 Markdown，并添加代码块复制功能
+        if (message.type === 'text' || message.type === undefined) {
              if (typeof marked !== 'undefined') {
-                 contentElement.innerHTML = marked.parse(message.content || ''); // 确保 content 不为空
+                 let renderedHtml = marked.parse(message.content || '');
+                 contentElement.innerHTML = renderedHtml;
+                 addCopyButtonsToCodeBlocks(contentElement); // ** 新增：添加复制按钮 **
+                 Prism.highlightAllUnder(contentElement); // ** 新增：代码高亮 **
              } else {
                  contentElement.textContent = message.content || '';
              }
         }
         // 如果是图片或音频类型，初始这里不设置内容，而是由 updateMessageWithImage/Audio 在后续处理
     }
-
-
-    // TODO: 处理消息中的文件信息显示 (用户消息中的文件)
 
     messagesListElement.appendChild(messageElement);
 
@@ -99,8 +112,8 @@ export function addMessageToUI(message, shouldScroll) {
 export function addStreamingMessageToUI() {
      const messagesListElement = document.getElementById('messages-list');
      const messageTemplate = document.getElementById('message-template');
-     if (!messageTemplate) {
-         console.error("Error: Message template element with ID 'message-template' not found.");
+     if (!messageTemplate || !messagesListElement) {
+         console.error("Error: Message template or messages list element not found.");
          return null;
      }
      const messageElement = messageTemplate.content.cloneNode(true).querySelector('.message');
@@ -114,7 +127,7 @@ export function addStreamingMessageToUI() {
      // 滚动到底部
      messagesListElement.scrollTop = messagesListElement.scrollHeight;
 
-     return messageElement; // 返回元素引用，以便后续更新内容
+     return messageElement; // 返回元素引用, 以便后续更新内容
 }
 
 /**
@@ -128,11 +141,33 @@ export function updateStreamingMessageUI(messageElement, content) {
     if (contentElement) {
          // 使用 innerHTML 并渲染 Markdown
          if (typeof marked !== 'undefined') {
-             contentElement.innerHTML = marked.parse(content);
+             let renderedHtml = marked.parse(content);
+              // Important: While streaming, we might be getting partial code blocks.
+              // Adding copy buttons and highlighting on every chunk might be inefficient
+              // or cause flickering/issues with partial Markdown.
+              // A better approach for streaming might be to update the textContent initially,
+              // and then process/re-render with Markdown, highlighting, and copy buttons
+              // only AFTER the stream is complete (in the onComplete callback in main.js).
+              // However, to show the text progressively, we'll update innerHTML but
+              // delay adding copy buttons and highlighting until the message is final.
+              // For now, let's stick to just updating innerHTML with Markdown.
+              // Adding copy buttons/highlighting on every update would require more complex logic
+              // to avoid duplicating buttons or interfering with Prism.js.
+              // For this example, we'll add copy buttons/highlighting in addMessageToUI
+              // which is called when rendering existing messages, or when a *final* message
+              // is added after streaming.
+
+              // A simpler intermediate approach during streaming: just update the text.
+              // Or, update HTML but defer post-processing. Let's update HTML for now.
+              contentElement.innerHTML = renderedHtml;
+
+              // We won't add copy buttons/highlighting here during streaming.
+              // It will be applied when the final message is added/updated in main.js
+
          } else {
              contentElement.textContent = content;
          }
-         // 确保滚动到底部（可选，取决于是否需要每次更新都滚动）
+         // 确保滚动到底部
          const messagesListElement = document.getElementById('messages-list');
          if (messagesListElement) {
              messagesListElement.scrollTop = messagesListElement.scrollHeight;
@@ -140,6 +175,55 @@ export function updateStreamingMessageUI(messageElement, content) {
     }
 }
 // ** 流式消息函数结束 **
+
+
+// ** 新增：添加代码块复制按钮和逻辑 **
+/**
+ * 在 Markdown 渲染后的代码块中添加复制按钮
+ * @param {Element} containerElement - 包含 Markdown 内容的 DOM 元素 (.content)
+ */
+function addCopyButtonsToCodeBlocks(containerElement) {
+     const codeBlocks = containerElement.querySelectorAll('pre > code'); // 查找 <pre><code> 结构
+
+     codeBlocks.forEach(codeElement => {
+         const preElement = codeElement.parentElement; // 获取父级 <pre> 元素
+
+         // 检查是否已经添加过复制按钮，避免重复
+         if (preElement.querySelector('.copy-code-button')) {
+             return;
+         }
+
+         const copyButton = document.createElement('button');
+         copyButton.classList.add('copy-code-button');
+         copyButton.textContent = 'Copy';
+
+         // 绑定点击事件
+         copyButton.addEventListener('click', async () => {
+             const codeToCopy = codeElement.textContent; // 获取代码文本
+
+             try {
+                 await navigator.clipboard.writeText(codeToCopy); // 使用 Clipboard API 复制
+                 copyButton.textContent = 'Copied!';
+                 copyButton.classList.add('copied');
+                 // 复制成功后，短暂显示“Copied!”然后恢复
+                 setTimeout(() => {
+                     copyButton.textContent = 'Copy';
+                      copyButton.classList.remove('copied');
+                 }, 2000); // 显示 2 秒
+             } catch (err) {
+                 console.error('Failed to copy code: ', err);
+                 copyButton.textContent = 'Error!';
+                 copyButton.classList.add('copied');
+                 setTimeout(() => {
+                     copyButton.textContent = 'Copy';
+                      copyButton.classList.remove('copied');
+                 }, 2000);
+             }
+         });
+
+         preElement.appendChild(copyButton); // 将按钮添加到 <pre> 元素
+     });
+}
 
 
 // ** 添加更新消息为图片/音频的函数 **
@@ -165,11 +249,13 @@ export function updateMessageWithImage(messageElement, imageUrl, altText = '') {
         contentElement.appendChild(img);
 
         // 添加原始提示词作为文本（可选）
-        const promptText = document.createElement('p');
-        promptText.textContent = `提示词: ${altText}`;
-        promptText.style.fontSize = '0.9em';
-        promptText.style.color = '#555';
-        contentElement.appendChild(promptText);
+        if (altText) {
+             const promptText = document.createElement('p');
+             promptText.textContent = `提示词: ${altText}`;
+             promptText.style.fontSize = '0.9em';
+             promptText.style.color = '#555';
+             contentElement.appendChild(promptText);
+        }
 
 
         // 确保滚动到底部
@@ -209,11 +295,13 @@ export function updateMessageWithAudio(messageElement, audioUrl, description = '
         contentElement.appendChild(audio);
 
          // 添加原始文本作为描述（可选）
-        const descriptionText = document.createElement('p');
-        descriptionText.textContent = `文本: ${description}`;
-        descriptionText.style.fontSize = '0.9em';
-        descriptionText.style.color = '#555';
-        contentElement.appendChild(descriptionText);
+         if (description) {
+             const descriptionText = document.createElement('p');
+             descriptionText.textContent = `文本: ${description}`;
+             descriptionText.style.fontSize = '0.9em';
+             descriptionText.style.color = '#555';
+             contentElement.appendChild(descriptionText);
+         }
 
          // 确保滚动到底部
          const messagesListElement = document.getElementById('messages-list');
@@ -254,7 +342,11 @@ function handleFileUpload(event) {
         // TODO: 需要在 main.js 中保存 chats 对象到 localStorage (当文件添加/移除时) - 现在在 main.js 的 sendMessage/generateImage 中统一保存
     }
 
-    event.target.value = '';
+    event.target.value = ''; // 清空文件输入框，以便再次选择相同文件能触发 change 事件
+     // ** 重要：在这里调用保存函数 **
+     if (currentChatId) { // 确保有当前聊天ID
+          saveChatData(chats);
+     }
 }
 
 /**
@@ -264,8 +356,8 @@ function handleFileUpload(event) {
 function addUploadedFileToUI(fileInfo) {
      const uploadedFilesListElement = document.getElementById('uploaded-files-list');
      const fileItemTemplate = document.getElementById('file-item-template');
-    if (!fileItemTemplate) {
-         console.error("Error: File item template element with ID 'file-item-template' not found.");
+    if (!uploadedFilesListElement || !fileItemTemplate) {
+         console.error("Error: Uploaded files list or template element not found.");
          return;
     }
      const fileItemElement = fileItemTemplate.content.cloneNode(true).querySelector('li');
@@ -276,31 +368,14 @@ function addUploadedFileToUI(fileInfo) {
         spanElement.textContent = fileInfo.name;
     }
 
-    // 添加移除按钮事件 (直接在 ui.js 中处理移除 UI，数据移除由 main.js 处理)
-    const removeButton = fileItemElement.querySelector('.remove-file');
-    if (removeButton) {
-        removeButton.addEventListener('click', () => {
-             removeUploadedFile(fileInfo.id); // 调用 UI 移除函数
-             // 通知 main.js 移除数据并保存
-             // 更好的做法是这里触发一个自定义事件，让 main.js 监听并处理数据
-             // 临时简单处理：直接在 main.js 的 sendMessage/generateImage 中获取上传列表
-             // 或者将 removeUploadedFile 逻辑移到 main.js 中，让 ui.js 调用 main.js 的函数
-             // 当前实现是 ui.js 移除 UI，main.js 在发送时重新获取上传列表并保存
-             // 还是将移除逻辑统一到 main.js 更好
-             // 暂时将 removeUploadedFile 标记为 TODO 在 main.js 中实现
-             // 或者，修改此处的逻辑，直接在 ui.js 中触发事件并让 main.js 监听
-             // 为了简化，我们暂时让 removeUploadedFile 在 ui.js 中仅移除 UI，数据处理依赖 main.js 在发送消息时获取最新列表
-        });
-    }
-
-
+    // 移除按钮事件监听在 initializeUI 中通过事件委托绑定到 #uploaded-files-list
+    // 这里只需要添加元素到 DOM
      uploadedFilesListElement.appendChild(fileItemElement);
 }
 
 
 /**
  * 从 UI 和数据中移除已上传文件
- * TODO: 这个函数最好移动到 main.js 中，因为它需要修改聊天数据并保存
  * @param {string} fileId - 要移除的文件的 ID
  */
 function removeUploadedFile(fileId) {
@@ -312,8 +387,6 @@ function removeUploadedFile(fileId) {
 
     // 从数据中移除文件
     currentChat.uploadedFiles = currentChat.uploadedFiles.filter(file => file.id !== fileId);
-    // TODO: 在这里立即保存 chats 数据到 localStorage
-    // saveChatData(chats); // 应该在这里调用保存
 
     // 从 UI 中移除文件列表项
     const fileItemElement = document.querySelector(`#uploaded-files-list li[data-file-id="${fileId}"]`);
@@ -331,7 +404,6 @@ function removeUploadedFile(fileId) {
 
 /**
  * 更新设置区域（模型选择和系统提示词）的 UI
- * ... (保持不变) ...
  */
 export function updateSettingsUI(model, systemPrompt) {
     const modelSelectElement = document.getElementById('model-select');
@@ -348,7 +420,6 @@ export function updateSettingsUI(model, systemPrompt) {
 
 /**
  * 更新已上传文件列表的 UI
- * ... (保持不变) ...
  */
 export function updateUploadedFilesUI(files) {
     const uploadedFilesListElement = document.getElementById('uploaded-files-list');
@@ -371,7 +442,6 @@ export function updateUploadedFilesUI(files) {
 
 /**
  * 根据获取的模型列表填充模型选择下拉框
- * ... (保持不变) ...
  */
  export function populateModelSelect(models, currentModel) {
     const modelSelectElement = document.getElementById('model-select');
@@ -381,7 +451,7 @@ export function updateUploadedFilesUI(files) {
     }
     modelSelectElement.innerHTML = '';
 
-    if (Array.isArray(models)) {
+    if (Array.isArray(models) && models.length > 0) {
         models.forEach(model => {
             const option = document.createElement('option');
             option.value = model.name;
@@ -393,25 +463,23 @@ export function updateUploadedFilesUI(files) {
 
             modelSelectElement.appendChild(option);
         });
+         // 如果当前没有选中模型，默认选中第一个
+         if (modelSelectElement.value === '') {
+             modelSelectElement.value = models[0].name;
+         }
+
     } else {
-        console.error("populateModelSelect expects an array, but received:", models);
+        console.warn("populateModelSelect received empty or non-array models:", models);
          const option = document.createElement('option');
-         option.value = '';
+         option.value = ''; // 设置一个空值或特定值表示无模型
          option.textContent = '加载模型失败或无可用模型';
          modelSelectElement.appendChild(option);
+         modelSelectElement.disabled = true; // 没有模型时禁用选择框
     }
-
-     if (modelSelectElement.value === '' && models.length > 0) {
-         modelSelectElement.value = models[0].name;
-         // TODO: 需要通知 main.js 更新当前聊天的 model 属性
-         // 在 main.js 的 DOMContentLoaded 中加载和切换聊天时，已经设置了 model
-         // 这里的逻辑可能不再需要
-     }
 }
 
 /**
  * 更新侧边栏的聊天列表 UI
- * ... (保持不变) ...
  */
 export function updateChatListUI(allChats, currentChatId) {
     const chatListElement = document.getElementById('chat-list');
@@ -437,8 +505,14 @@ export function updateChatListUI(allChats, currentChatId) {
         // 确定聊天标题：优先使用保存的 name，否则使用第一条消息的前缀，否则使用 ID 的一部分
         let chatTitle = chat.name ||
                           (chat.messages && chat.messages.length > 0
-                            ? chat.messages[0].content.substring(0, 20) + (chat.messages[0].content.length > 20 ? '...' : '')
-                            : `新聊天 (${chatId.substring(0, 4)})`);
+                            ? (chat.messages[0].content || '').substring(0, 20) + ((chat.messages[0].content || '').length > 20 ? '...' : '')
+                            : `新聊天 (${chatId ? chatId.substring(0, 4) : ''})`); // 检查 chatId 是否存在
+
+         // 如果截断后的标题是空的，则提供一个默认名称
+         if (chatTitle.trim() === '' || chatTitle === '...') {
+             chatTitle = chat.name || `新聊天 (${chatId ? chatId.substring(0, 4) : ''})`;
+         }
+
 
         const spanElement = listItem.querySelector('span');
         if(spanElement) {
@@ -449,12 +523,34 @@ export function updateChatListUI(allChats, currentChatId) {
             listItem.classList.add('active');
         }
 
+        // 删除按钮事件监听在 main.js 中通过事件委托绑定到 #chat-list
+        // 这里只需要将按钮添加到 DOM
+        const deleteButton = listItem.querySelector('.delete-chat');
+        if(deleteButton) {
+             deleteButton.dataset.chatId = chatId; // 将 chatId 存储到删除按钮上
+        }
+
+
         chatListElement.appendChild(listItem);
     });
 }
+
+/**
+ * 清空当前聊天窗口的消息列表 UI
+ */
+export function clearMessagesUI() {
+    const messagesListElement = document.getElementById('messages-list');
+    if (messagesListElement) {
+        messagesListElement.innerHTML = '';
+    }
+}
+
 
 // 注意：更新语音选择 UI 的函数放在 main.js 中，因为它与聊天数据和设置相关
 // 但 UI 的实际操作可以在 ui.js 中实现，并通过 main.js 调用
 // 假设 main.js 中的 updateVoiceSelectUI 函数会调用这里的 DOM 操作
 
-// TODO: 添加更多 UI 操作函数，例如显示加载状态、错误提示等
+// 导出核心函数
+// 注意：这里的导出可能需要根据 main.js 的 import 来调整
+// 例如，如果 main.js 需要调用这里的 clearMessagesUI，则需要导出它
+export { addCopyButtonsToCodeBlocks, clearMessagesUI }; // 导出新增的函数
