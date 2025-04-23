@@ -548,4 +548,4 @@ export function updateThemeToggleButton(theme) {
 }
 
 // 导出核心函数
-export { addCopyButtonsToCodeBlocks, clearMessagesUI };
+export {  clearMessagesUI };

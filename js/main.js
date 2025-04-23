@@ -753,4 +753,4 @@ function renderMessages(messages) {
 }
 
 // 导出核心函数
-export { currentChatId, chats, sendMessage, renderMessages, generateImage, clearCurrentChatContext };
+export { currentChatId, chats, sendMessage, renderMessages, generateImage };
