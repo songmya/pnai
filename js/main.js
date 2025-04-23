@@ -77,6 +77,25 @@ function createNewChat() {
         model: 'model-a', // 默认模型
         uploadedFiles: [] // 存储已上传文件的信息
     };
+	 // ** 添加获取用户输入名称的逻辑 **
+    let chatName = prompt("请输入新聊天的名称:");
+    // 如果用户取消输入或输入空名称，可以使用一个默认名称
+    if (!chatName || chatName.trim() === "") {
+        chatName = "新聊天"; // 默认名称
+    }
+    // ** 获取名称逻辑结束 **
+    // 2. 创建新的聊天数据结构并添加到 chats 对象中
+    chats[newChatId] = {
+        name: chatName, // ** 将名称存储到聊天数据中 **
+        messages: [],
+        settings: {}, // 根据需要初始化设置
+        uploadedFiles: [] // 根据需要初始化文件列表
+    };
+    // 3. 更新 currentChatId
+    currentChatId = newChatId;
+    localStorage.setItem('currentChatId', currentChatId);
+    localStorage.setItem('chats', JSON.stringify(chats)); // 保存到 localStorage
+	
     switchChat(newChatId);
     updateChatListUI();
     saveChatData(chats);
