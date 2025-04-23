@@ -248,7 +248,7 @@ function processStreamChunk(chunk, onData) {
  */
 export async function callTxt2ImgApi(prompt) {
     const encodedPrompt = encodeURIComponent(prompt);
-    const url = `${API_BASE_URL_IMAGE}/prompt/${encodedPrompt}`;
+    const url = `${API_BASE_URL_IMAGE}/prompt/${encodedPrompt}?model=turbo&nologo=true&enhance=true`;
 
     try {
         const response = await fetch(url, {
