@@ -30,92 +30,75 @@ export async function fetchModels() {
 }
 
 /**
- * 调用 Pollinations.ai API 进行文本生成 (聊天 - /chat 端点)
- * @param {string} prompt - 用户输入
- * @param {string} systemPrompt - 系统提示词 (可选)
- * @param {string} model - 使用的模型名称 (必需)
- * @param {Array<object>} uploadedFiles - 已上传文件数组 [{ id: '...', name: '...', type: '...', size: '...', file: File }] (包含 File 对象)
- * @param {Array<object>} chatMessages - 聊天历史消息数组 (用于提供上下文)
+ * 辅助函数：将 File 对象读取为 Base64 数据 URL
+ * @param {File} file - 要读取的文件对象
+ * @returns {Promise<string>} Promise 解析为 Base64 数据 URL
+ */
+function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+
+/**
+ * 调用 Pollinations.ai API 进行文本生成 (使用 GET 端点)
+ * 使用 URL 结构：https://text.pollinations.ai/{input}?stream=true&private=true&model={model}&system={提示词}
+ * @param {string} prompt - 用户输入 (将作为 {input} 部分)
+ * @param {string} systemPrompt - 系统提示词 (将作为 {提示词} 参数)
+ * @param {string} model - 使用的模型名称 (将作为 {model} 参数)
+ * @param {Array<object>} uploadedFiles - 已上传文件数组 (此 GET 端点可能不支持文件上传，该参数在此实现中被忽略)
+ * @param {Array<object>} chatMessages - 聊天历史消息数组 (此 GET 端点可能不支持消息历史，该参数在此实现中被忽略)
  * @param {function} onData - 回调函数，当接收到新的数据块时调用 (用于流式)
  * @param {function} onComplete - 回调函数，当流结束时调用
  * @param {function} onError - 回调函数，当发生错误时调用
  */
 export async function callAIApi(prompt, systemPrompt, model, uploadedFiles, chatMessages, onData, onComplete, onError) {
-     const url = `${API_BASE_URL_TEXT}/chat`;
-
-     const messages = [];
-
-     if (systemPrompt && systemPrompt.trim()) {
-          messages.push({ role: 'system', content: systemPrompt });
-     }
-
-     if (chatMessages && Array.isArray(chatMessages)) {
-         // Pollinations.ai 的 /chat 端点支持 messages 数组，但文件可能需要单独处理
-         // 为了简单起见，我们只将文本历史包含进来
-         chatMessages.forEach(msg => {
-             if (msg.sender === 'user' || msg.sender === 'ai') {
-                 messages.push({
-                     role: msg.sender === 'user' ? 'user' : 'assistant',
-                     content: msg.content
-                 });
-             }
-         });
-     }
-
-     // 构建用户消息内容
-     let userContent = [{ type: 'text', text: prompt }];
-
-     // 处理文件上传（只处理第一个图片文件并编码为 Base64）
-     let base64ImageData = null;
-     if (uploadedFiles && Array.isArray(uploadedFiles) && uploadedFiles.length > 0) {
-         const firstFile = uploadedFiles[0].file;
-         if (firstFile && firstFile.type.startsWith('image/')) {
-              try {
-                 base64ImageData = await readFileAsBase64(firstFile);
-                 // 将图片信息添加到用户消息内容中（GPT-4V 格式）
-                 userContent.push({ type: 'image_url', image_url: { url: base64ImageData } });
-              } catch (error) {
-                 console.error("Error reading image file:", error);
-                 if (onError) onError("无法读取图片文件：" + error.message);
-                 return; // 读取文件失败，停止后续操作
-              }
-         } else {
-             console.warn("Uploaded file is not an image, skipping.");
-             // 可以在 UI 中提示用户只支持图片上传
-         }
-     }
-
-     messages.push({
-         role: 'user',
-         content: userContent
-      });
-
-     const body = {
-        messages: messages, // 发送完整的消息历史和当前用户消息（含图片）
-        model: model, // 使用传入的模型名称
-        stream: true // **启用流式传输**
-        // private: true // Pollinations.ai 文档中提到 private=true for stream GET，POST 可能不同，先不加
-        // 其他可选参数
-     };
-
      try {
+        // 对用户输入、模型和系统提示词进行 URL 编码
+        const encodedInput = encodeURIComponent(prompt);
+        const encodedModel = encodeURIComponent(model || ''); // 确保有默认值或处理空模型情况
+        const encodedSystemPrompt = encodeURIComponent(systemPrompt || ''); // 确保有默认值或处理空系统提示词情况
+
+        // 构建 Pollinations.ai GET API URL
+        // 严格按照您提供的 URL 结构
+        const url = `${API_BASE_URL_TEXT}/${encodedInput}?stream=true&private=true&model=${encodedModel}&system=${encodedSystemPrompt}`;
+
+        console.log("Calling Pollinations.ai Txt2Txt API with URL:", url); // 调试输出 URL
+
+        // Pollinations.ai 的文本生成 GET 端点通常使用 GET 方法
         const response = await fetch(url, {
-            method: 'POST',
+            method: 'GET', // GET 请求
             headers: {
-                'Content-Type': 'application/json'
+                // Pollinations.ai GET 端点可能不需要特定的 Content-Type 或 API Key headers
+                // 如果您有 API Key 并需要添加，请查阅其文档
             },
-            body: JSON.stringify(body)
+             // GET 请求没有 body
         });
 
         if (!response.ok) {
-             const errorBody = await response.json();
-             const errorMessage = errorBody.detail || errorBody.error || JSON.stringify(errorBody);
-             console.error(`Error calling AI API (/chat): ${response.status} ${response.statusText}`, errorBody);
-             if (onError) onError(`API 请求失败：${response.status} ${response.statusText} - ${errorMessage}`);
+             // 检查非 2xx 状态码
+             const errorText = await response.text();
+             console.error(`Error calling AI API: ${response.status} ${response.statusText}`, errorText);
+             if (onError) {
+                 // 尝试解析错误响应是否是 JSON，如果不是，显示原始文本
+                 try {
+                     const errorJson = JSON.parse(errorText);
+                     const errorMessage = errorJson.detail || errorJson.error || errorText;
+                     onError(`API 请求失败：${response.status} ${response.statusText} - ${errorMessage}`);
+                 } catch (e) {
+                     // 如果不是 JSON，显示原始文本，限制长度
+                     onError(`API 请求失败：${response.status} ${response.statusText} - ${errorText.substring(0, 200)}...`);
+                 }
+             }
              return;
         }
 
-        // **处理流式回复**
+        // **处理流式文本回复**
+        // Pollinations.ai 的 GET 端点通常直接返回文本流，而不是 SSE 或 JSON 对象流
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
@@ -130,41 +113,16 @@ export async function callAIApi(prompt, systemPrompt, model, uploadedFiles, chat
             // 将 Uint8Array 转换为字符串
             buffer += decoder.decode(value, { stream: true });
 
-            // Pollinations.ai 的流式回复可能每块都是完整的文本，也可能是分块的
-            // 如果是分块的，需要解析事件流 (Server-Sent Events - SSE)
-            // 常见的 SSE 格式是 `data: ...\n\ndata: ...\n\n`
-            // 简单的处理方式是假设每块数据都是要显示的文本
-            // 但更稳健的方式是解析 SSE
-            // Pollinations.ai 的 /chat 接口 POST 带 stream=true 可能返回 JSON 对象流，而不是 SSE
-            // 例如： {"text":"..."} {"text":"..."}
-            // 简单的处理方式：按换行符分割，尝试解析 JSON
-            const lines = buffer.split('\n');
-            buffer = lines.pop(); // 最后一个不完整的行留在 buffer 中
-
-            for (const line of lines) {
-                if (line.trim() === '') continue; // 跳过空行
-                // 尝试解析 JSON
-                try {
-                    const json = JSON.parse(line);
-                     // 假设返回格式是 { text: '...' }
-                    if (json && json.text !== undefined) {
-                         if (onData) onData(json.text); // 将新的文本块传递给 UI
-                    } else {
-                        console.warn("Received unexpected JSON format:", json);
-                         // 如果格式不对，可以显示原始行或跳过
-                         // if (onData) onData(line + '\n'); // 显示原始行
-                    }
-                } catch (e) {
-                    console.warn("Could not parse JSON from stream line:", line, e);
-                    // 如果不是 JSON，可能是其他格式的流数据，或者错误信息
-                    // 可以在 UI 中显示原始行或忽略
-                     // if (onData) onData(line + '\n'); // 显示原始行
-                }
+            // 对于简单的文本流，每次读取到数据就传递给 onData 回调
+            // Pollinations.ai 的这个 GET 端点可能就是简单的文本流
+            if (buffer.length > 0) {
+                if (onData) onData(buffer);
+                buffer = ''; // 处理后清空缓冲区
             }
         }
 
      } catch (error) {
-        console.error('Error calling AI API (/chat):', error);
+        console.error('Error calling AI API:', error);
         if (onError) onError(`发生网络或未知错误：${error.message}`);
      }
 }
@@ -180,30 +138,17 @@ export async function callTxt2ImgApi(prompt) {
     const url = `${API_BASE_URL_IMAGE}/prompt/${encodedPrompt}`; // 使用 image 端点
 
     try {
-        // txt2img 端点直接返回图片文件或重定向到图片 URL
-        // 我们直接使用 GET 请求，浏览器会自动处理重定向并加载图片
-        // 所以我们直接返回 URL 即可
-        // 如果需要先获取图片数据（例如为了预览或处理），可以使用 fetch responseType 'blob' 或 'arrayBuffer'
-        // 但这里直接返回 URL 就可以让 UI 显示图片
         const response = await fetch(url, {
              method: 'GET'
-             // Pollinations.ai 的 txt2img 端点通常不需要额外头部或认证
         });
 
         if (!response.ok) {
-             // Pollinations.ai 图片生成失败可能返回 HTML 错误页面或 JSON
              const errorText = await response.text();
              console.error(`Error calling Txt2Img API: ${response.status} ${response.statusText}`, errorText);
-             // 返回一个表示错误的特殊值或抛出错误
              throw new Error(`生成图片失败：${response.status} ${response.statusText} - ${errorText.substring(0, 100)}...`);
         }
 
-        // 如果请求成功，URL 就是图片 URL
-        // 注意：这个 GET 请求可能是一个重定向。fetch API 会跟随重定向。
-        // response.url 会是最终的图片 URL。
         const imageUrl = response.url;
-
-        // 您也可以检查 response.headers.get('Content-Type') 是否是图片类型
 
         return imageUrl; // 返回图片 URL
 
@@ -225,18 +170,12 @@ export async function callTxt2AudioApi(prompt, voice) {
      // 确保语音参数是有效值，默认为 voice1
     const selectedVoice = voice === 'voice2' ? 'voice2' : 'voice1';
 
-    // 注意：Pollinations.ai 文档中写的是 GET https://text.pollinations.ai/{input}?model=openai-audio&voice={select}
-    // 这个 URL 看起来不太符合标准的文本转音频 API 设计，更像是一个文本聊天接口带了音频参数
-    // 让我们按照文档来构建 URL，但要注意实际返回可能不是纯音频文件
-    // 如果实际返回的是一个指向音频文件的 URL，那么直接返回 URL 即可
-    // 如果返回的是一个包含音频数据的流或文件，需要处理 responseType 和 blob/arrayBuffer
-    // 假设它直接返回一个指向音频文件的 URL
+    // 按照文档构建 URL
     const url = `${API_BASE_URL_TEXT}/${encodedPrompt}?model=openai-audio&voice=${selectedVoice}`; // 使用 text 端点带特定模型和语音参数
 
     try {
         const response = await fetch(url, {
              method: 'GET'
-             // 可能需要其他头部，例如 Accept: 'audio/mpeg' 等，但先尝试不加
         });
 
         if (!response.ok) {
@@ -245,11 +184,7 @@ export async function callTxt2AudioApi(prompt, voice) {
              throw new Error(`生成音频失败：${response.status} ${response.statusText} - ${errorText.substring(0, 100)}...`);
         }
 
-        // 假设响应 URL 就是音频文件的 URL
         const audioUrl = response.url;
-
-        // 您也可以检查 response.headers.get('Content-Type') 是否是音频类型
-        // 例如：'audio/mpeg' 或 'audio/wav'
 
         return audioUrl; // 返回音频 URL
 
@@ -260,8 +195,5 @@ export async function callTxt2AudioApi(prompt, voice) {
 }
 
 
-// 辅助函数：将 File 对象读取为 Base64 数据 URL (已在上面定义)
-// function readFileAsBase64(file) { ... }
-
-// 导出新的 API 调用函数
-
+// 导出 API 调用函数
+export { fetchModels, callAIApi, callTxt2ImgApi, callTxt2AudioApi };
