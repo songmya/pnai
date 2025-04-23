@@ -282,7 +282,7 @@ body {
 }
 
 
-#send-btn {
+#send-btn, #generate-image-btn { /* ** 添加图片生成按钮的 ID ** */
     padding: 10px 20px;
     background-color: #007bff;
     color: white;
@@ -292,8 +292,17 @@ body {
     font-size: 1em;
 }
 
-#send-btn:hover {
+#send-btn:hover, #generate-image-btn:hover { /* ** 添加图片生成按钮的 ID ** */
     background-color: #0056b3;
+}
+
+#generate-image-btn {
+     background-color: #ffc107; /* 例如，使用不同的颜色区分 */
+     color: #212529;
+}
+
+#generate-image-btn:hover {
+     background-color: #e0a800;
 }
 
 

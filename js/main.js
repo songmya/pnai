@@ -8,8 +8,10 @@ import {
     updateUploadedFilesUI,
     updateChatListUI,
     populateModelSelect,
-    addStreamingMessageToUI, // 导入处理流式消息的函数
-    updateStreamingMessageUI // 导入更新流式消息的函数
+    addStreamingMessageToUI,
+    updateStreamingMessageUI,
+    updateMessageWithImage, // 导入处理图片显示的函数
+    updateMessageWithAudio // 导入处理音频显示的函数
 } from './ui.js';
 // 导入 api.js 中的函数
 import { fetchModels, callAIApi, callTxt2ImgApi, callTxt2AudioApi } from './api.js';
@@ -18,7 +20,7 @@ import { generateUniqueId } from './utils.js';
 
 // 全局状态管理
 let currentChatId = null;
-let chats = {}; // { chatId: { name: '', messages: [], systemPrompt: '', model: '', voice: '', uploadedFiles: [] } } // 添加 voice 属性
+let chats = {}; // { chatId: { name: '', messages: [], systemPrompt: '', model: '', voice: '', uploadedFiles: [] } }
 let availableModels = []; // 存储从API获取的可用模型列表
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -41,13 +43,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 2. 初始化 UI 事件监听
-    initializeUI();
+    initializeUI(); // 这里面会绑定 Send 按钮和文件上传事件
 
-    // 3. 绑定新建聊天按钮事件
+    // ** 3. 绑定新建聊天按钮事件 (已存在，确认代码) **
     document.getElementById('new-chat-btn').addEventListener('click', createNewChat);
 	console.log('Binding new chat button event');
 
-    // 4. 绑定侧边栏聊天列表点击事件 (通过事件委托)
+    // ** 4. 绑定侧边栏聊天列表点击事件 (已存在，确认代码) **
     document.getElementById('chat-list').addEventListener('click', (event) => {
         const target = event.target;
         const listItem = target.closest('li[data-chat-id]');
@@ -61,12 +63,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // 5. 绑定设置区域（模型选择、系统提示词、语音选择）的 change/input 事件
+    // ** 5. 绑定设置区域（模型选择、系统提示词、语音选择）的 change/input 事件 (已存在，确认代码) **
     document.getElementById('model-select').addEventListener('change', (event) => {
         if (currentChatId && chats[currentChatId]) {
             chats[currentChatId].model = event.target.value;
             saveChatData(chats);
-             // TODO: 根据选择的模型（例如 txt2audio 模型）显示或隐藏语音选择 UI
              updateVoiceSelectVisibility(event.target.value);
         }
     });
@@ -78,8 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-     // ** 绑定语音选择下拉框事件 **
-    document.getElementById('voice-select').addEventListener('change', (event) => {
+     document.getElementById('voice-select').addEventListener('change', (event) => {
         if (currentChatId && chats[currentChatId]) {
             chats[currentChatId].voice = event.target.value;
             saveChatData(chats);
@@ -91,12 +91,22 @@ document.addEventListener('DOMContentLoaded', async () => {
          updateVoiceSelectVisibility(chats[currentChatId].model);
      }
 
+     // ** 新增：绑定生成图片按钮事件 **
+     const generateImageBtn = document.getElementById('generate-image-btn');
+     if (generateImageBtn) {
+         generateImageBtn.addEventListener('click', generateImage);
+         console.log('Binding generate image button event');
+     } else {
+         console.error("Generate image button with ID 'generate-image-btn' not found.");
+     }
+
 });
 
 // ---- 核心功能函数 ----
 
 /**
  * 创建新的聊天会话
+ * ... (保持不变) ...
  */
 function createNewChat() {
     const newChatId = generateUniqueId();
@@ -111,7 +121,7 @@ function createNewChat() {
         messages: [],
         systemPrompt: '',
         model: availableModels.length > 0 ? availableModels[0].name : 'openai', // 默认模型
-        voice: 'voice1', // ** 添加默认语音选择 **
+        voice: 'voice1',
         uploadedFiles: []
     };
 
@@ -126,7 +136,7 @@ function createNewChat() {
 
 /**
  * 切换到指定的聊天会话
- * @param {string} chatId - 要切换到的聊天会话 ID
+ * ... (保持不变) ...
  */
 function switchChat(chatId) {
     if (!chats[chatId]) {
@@ -145,8 +155,8 @@ function switchChat(chatId) {
     // 更新设置区域，包括模型、系统提示词、语音选择
     updateSettingsUI(currentChat.model, currentChat.systemPrompt);
     populateModelSelect(availableModels, currentChat.model);
-    updateVoiceSelectUI(currentChat.voice); // ** 更新语音选择 UI **
-    updateVoiceSelectVisibility(currentChat.model); // ** 根据模型显示/隐藏语音选择 UI **
+    updateVoiceSelectUI(currentChat.voice);
+    updateVoiceSelectVisibility(currentChat.model);
 
     updateChatListUI(chats, currentChatId);
 }
@@ -182,8 +192,7 @@ function deleteChat(chatId) {
 
 /**
  * 根据选择的模型名称控制语音选择 UI 的可见性
- * Pollinations.ai 的 txt2audio 模型名称是 'openai-audio'
- * @param {string} selectedModel - 当前选择的模型名称
+ * ... (保持不变) ...
  */
 function updateVoiceSelectVisibility(selectedModel) {
     const voiceSelectContainer = document.getElementById('voice-select-container'); // 假设你的 HTML 中有一个容器
@@ -201,7 +210,7 @@ function updateVoiceSelectVisibility(selectedModel) {
 
 /**
  * 更新语音选择下拉框的选中值
- * @param {string} selectedVoice - 当前选择的语音值
+ * ... (保持不变) ...
  */
 function updateVoiceSelectUI(selectedVoice) {
     const voiceSelectElement = document.getElementById('voice-select');
@@ -214,12 +223,12 @@ function updateVoiceSelectUI(selectedVoice) {
 
 
 /**
- * 发送消息（用户输入），根据输入或模型调用不同的 API
+ * 发送消息（用户输入），调用 AI 聊天 API
  */
 async function sendMessage() {
     const userInputElement = document.getElementById('user-input');
     const messageContent = userInputElement.value.trim();
-    const uploadedFiles = chats[currentChatId]?.uploadedFiles || [];
+    const uploadedFiles = chats[currentChatId]?.uploadedFiles || []; // 注意：聊天API支持文件上传，但图片生成按钮不支持
     const currentChat = chats[currentChatId];
 
     if (!messageContent && uploadedFiles.length === 0) {
@@ -235,124 +244,81 @@ async function sendMessage() {
     const userMessage = {
         sender: 'user',
         content: messageContent,
-        files: uploadedFiles.map(file => ({ name: file.name, type: file.type }))
+        files: uploadedFiles.map(file => ({ name: file.name, type: file.type })) // 保存文件信息到消息数据
     };
     currentChat.messages.push(userMessage);
     addMessageToUI(userMessage, true);
 
     // 清空输入框和文件列表 UI 和数据
     userInputElement.value = '';
-    currentChat.uploadedFiles = [];
-    updateUploadedFilesUI([]);
+    currentChat.uploadedFiles = []; // 清空上传的文件数据
+    updateUploadedFilesUI([]); // 更新文件列表 UI
 
+    // 2. 调用常规聊天 API (/openai)
     // TODO: 显示加载状态 UI
     const sendButton = document.getElementById('send-btn');
+    const generateImageBtn = document.getElementById('generate-image-btn');
     if(sendButton) sendButton.disabled = true; // 禁用发送按钮
-
-    // 2. 根据输入前缀或模型选择调用不同的 API
-    const lowerCaseMessage = messageContent.toLowerCase();
-    const selectedModel = document.getElementById('model-select').value;
-    const selectedVoice = document.getElementById('voice-select').value || 'voice1'; // 获取选中的语音
+    if(generateImageBtn) generateImageBtn.disabled = true; // 禁用图片生成按钮
 
     let aiMessageContent = ''; // 用于存储 AI 回复的文本内容
 
     try {
-        if (lowerCaseMessage.startsWith('/img ')) {
-            // 触发 txt2img
-            const prompt = messageContent.substring('/img '.length).trim();
-             // 添加一个占位符消息到 UI
-             const aiMessageElement = addMessageToUI({ sender: 'ai', content: '正在生成图片...' }, true);
-             // 调用 txt2img API
-            const imageUrl = await callTxt2ImgApi(prompt);
-             // 将占位符消息内容更新为图片
-             // 我们需要在 ui.js 中实现一个函数来更新消息内容，特别是插入图片
-             updateMessageWithImage(aiMessageElement, imageUrl, prompt); // 假设 ui.js 中有这个函数
-             aiMessageContent = `[图片生成] ${prompt}`; // 将图片 URL 存储到消息数据中可能不合适，存储描述或特殊标记
-             // 更好的做法是 messages 数据结构支持不同类型的内容，例如 { type: 'text', content: '...' } 或 { type: 'image', url: '...' }
-             // 为了与现有结构兼容，我们暂时只存储文本描述
-             // 实际显示图片是在 UI 层完成的
-        } else if (lowerCaseMessage.startsWith('/audio ')) {
-            // 触发 txt2audio
-             const prompt = messageContent.substring('/audio '.length).trim();
-             // 添加一个占位符消息到 UI
-             const aiMessageElement = addMessageToUI({ sender: 'ai', content: '正在生成音频...' }, true);
-             // 调用 txt2audio API
-             const audioUrl = await callTxt2AudioApi(prompt, selectedVoice);
-             // 将占位符消息内容更新为音频播放器
-             updateMessageWithAudio(aiMessageElement, audioUrl, prompt); // 假设 ui.js 中有这个函数
-             aiMessageContent = `[音频生成] ${prompt}`; // 存储描述或特殊标记
-        } else {
-            // 触发 txt2txt (常规聊天)
-            // Pollinations.ai 的 txt2txt GET 端点文档是 text.pollinations.ai/{input}?stream=true&private=true&system=(提示词)
-            // 但我们之前使用的 /chat 端点支持 messages 数组和模型选择，并且我们也实现了流式处理
-            // 考虑到灵活性和聊天上下文，我们继续使用 /chat 端点，并支持流式
+         // 添加一个空的 AI 消息元素到 UI，用于接收流式数据
+         const aiMessageElement = addStreamingMessageToUI(); // 假设 ui.js 中有这个函数，返回消息元素
 
-            // 添加一个空的 AI 消息元素到 UI，用于接收流式数据
-            const aiMessageElement = addStreamingMessageToUI(); // 假设 ui.js 中有这个函数，返回消息元素
+         // 调用 AI API (/openai)，传递回调函数处理流
+         await callAIApi(
+             messageContent,
+             currentChat.systemPrompt,
+             currentChat.model, // 使用当前聊天选定的模型
+             uploadedFiles, // 将上传文件传递给聊天 API (如果支持)
+             currentChat.messages.slice(0, -1), // 传递消息历史 (排除刚刚添加的用户消息，因为 API 会自动将用户消息加入请求 body)
+             (data) => {
+                 // onData 回调：接收到新的文本块
+                 aiMessageContent += data; // 累加接收到的文本
+                 updateStreamingMessageUI(aiMessageElement, aiMessageContent); // 更新 UI
+             },
+             () => {
+                 // onComplete 回调：流结束
+                 console.log("Streaming complete.");
+                  // 在流结束时将完整的回复内容保存到聊天数据中
+                  const aiMessage = {
+                      sender: 'ai',
+                      content: aiMessageContent // 保存累加的完整回复
+                  };
+                  // 查找并更新聊天数据中的最新 AI 消息，而不是简单 push，因为 addStreamingMessageToUI 可能已经添加了一个占位符
+                  // 更好的做法是在 addStreamingMessageToUI 时保存返回的元素到某个地方，并在 onComplete 时更新对应的数据条目
+                  // 临时简单处理：查找最后一个 AI 消息并更新
+                  const lastAIMessageIndex = currentChat.messages.map(msg => msg.sender).lastIndexOf('ai');
+                  if(lastAIMessageIndex !== -1) {
+                       currentChat.messages[lastAIMessageIndex].content = aiMessageContent;
+                  } else {
+                       currentChat.messages.push(aiMessage); // 如果找不到，就直接添加
+                  }
 
-            // 调用 AI API (/chat)，传递回调函数处理流
-            await callAIApi(
-                messageContent,
-                currentChat.systemPrompt,
-                selectedModel,
-                uploadedFiles,
-                currentChat.messages, // 传递消息历史
-                (data) => {
-                    // onData 回调：接收到新的文本块
-                    aiMessageContent += data; // 累加接收到的文本
-                    updateStreamingMessageUI(aiMessageElement, aiMessageContent); // 更新 UI
-                },
-                () => {
-                    // onComplete 回调：流结束
-                    console.log("Streaming complete.");
-                     // 在流结束时将完整的回复内容保存到聊天数据中
-                     // 这必须在流结束后进行，否则只保存了部分内容
-                     const aiMessage = {
-                         sender: 'ai',
-                         content: aiMessageContent // 保存累加的完整回复
-                     };
-                     currentChat.messages.push(aiMessage);
-                     saveChatData(chats); // 保存数据
-                     if(sendButton) sendButton.disabled = false; // 启用发送按钮
-                },
-                (error) => {
-                    // onError 回调：发生错误
-                     console.error("Streaming error:", error);
-                     aiMessageContent += `\n\n错误：${error.message}`; // 添加错误信息到回复
-                     updateStreamingMessageUI(aiMessageElement, aiMessageContent); // 更新 UI
-                     const aiMessage = {
-                         sender: 'ai',
-                         content: aiMessageContent // 保存包含错误信息的回复
-                     };
-                     currentChat.messages.push(aiMessage);
-                     saveChatData(chats); // 保存数据
-                     if(sendButton) sendButton.disabled = false; // 启用发送按钮
-                }
-            );
-
-            // ** 注意：因为流式回复，消息数据的保存和按钮的启用在 onComplete/onError 回调中进行 **
-            return; // 流式处理结束后不再执行后续的统一保存和按钮启用
-        }
-
-        // 对于非流式 API 调用 (txt2img, txt2audio)，在调用结束后保存数据和启用按钮
-        // 添加 AI 回复消息到数据 (对于 txt2img/audio，内容是描述或标记)
-        const aiMessage = {
-             sender: 'ai',
-             // 对于图片和音频，aiMessageContent 包含了描述，实际内容（URL）在 UI 中处理了
-             content: aiMessageContent
-         };
-        // 如果是 txt2img 或 txt2audio，消息已经通过 updateMessageWith... 更新了 UI
-        // 这里将描述或标记添加到消息数据中
-        if (!lowerCaseMessage.startsWith('/img ') && !lowerCaseMessage.startsWith('/audio ')) {
-             // 如果是常规聊天（非流式情况，虽然我们已经强制流式了），则在这里添加消息到数据
-             // 但因为我们已经强制流式，这部分代码理论上不会被执行到
-             // 除非 future 考虑非流式 /chat
-        } else {
-             // 对于 /img 和 /audio，在 AI 消息元素已经创建后，将描述添加到数据中
-             currentChat.messages.push(aiMessage);
-             saveChatData(chats); // 保存数据
-        }
-
+                  saveChatData(chats); // 保存数据
+                  if(sendButton) sendButton.disabled = false; // 启用发送按钮
+                  if(generateImageBtn) generateImageBtn.disabled = false; // 启用图片生成按钮
+             },
+             (error) => {
+                 // onError 回调：发生错误
+                  console.error("Streaming error:", error);
+                  aiMessageContent += `\n\n错误：${error.message}`; // 添加错误信息到回复
+                  updateStreamingMessageUI(aiMessageElement, aiMessageContent); // 更新 UI
+                  // 更新聊天数据中的错误消息
+                   const lastAIMessageIndex = currentChat.messages.map(msg => msg.sender).lastIndexOf('ai');
+                   if(lastAIMessageIndex !== -1) {
+                        currentChat.messages[lastAIMessageIndex].content = aiMessageContent;
+                   } else {
+                        const errorMessage = { sender: 'ai', content: aiMessageContent };
+                        currentChat.messages.push(errorMessage);
+                   }
+                  saveChatData(chats); // 保存数据
+                  if(sendButton) sendButton.disabled = false; // 启用发送按钮
+                  if(generateImageBtn) generateImageBtn.disabled = false; // 启用图片生成按钮
+             }
+         );
 
     } catch (error) {
         console.error("Error during API call:", error);
@@ -365,55 +331,159 @@ async function sendMessage() {
         addMessageToUI(errorMessage, true);
         saveChatData(chats); // 保存错误消息
     } finally {
-         // 在 finally 块中确保在非流式情况下按钮会被启用
-         // 对于流式情况，按钮在 onComplete/onError 中启用
-         if (!lowerCaseMessage.startsWith('/img ') && !lowerCaseMessage.startsWith('/audio ')) {
-              // 流式已经在回调中处理按钮启用
-         } else {
-               if(sendButton) sendButton.disabled = false; // 在非流式调用完成后启用发送按钮
-         }
+         // 在 finally 块中确保按钮在非流式情况下会被启用
+         // 因为 sendMessage 现在只处理流式聊天，所以这里的 finally 主要用于捕获非 API 调用的错误
+         // API 调用成功/失败后的按钮启用在 onComplete/onError 中处理
+         if(sendButton && !sendButton.disabled) sendButton.disabled = false; // 如果之前没禁用过，就确保启用
+         if(generateImageBtn && !generateImageBtn.disabled) generateImageBtn.disabled = false;
     }
+}
+
+/**
+ * 生成图片（由按钮触发），调用 txt2img API
+ */
+async function generateImage() {
+     const userInputElement = document.getElementById('user-input');
+     const prompt = userInputElement.value.trim();
+     const currentChat = chats[currentChatId];
+
+     if (!prompt) {
+         alert("请输入图片描述（Prompt）!");
+         return;
+     }
+
+     if (!currentChat) {
+          console.error("No current chat selected.");
+          return;
+     }
+
+     // 1. 添加用户发送的图片生成提示词到 UI 和数据
+     const userMessage = {
+         sender: 'user',
+         content: `[生成图片] ${prompt}` // 在消息内容中标记这是图片生成请求
+     };
+     currentChat.messages.push(userMessage);
+     addMessageToUI(userMessage, true);
+
+     // 清空输入框
+     userInputElement.value = '';
+
+     // TODO: 显示加载状态 UI
+     const sendButton = document.getElementById('send-btn');
+     const generateImageBtn = document.getElementById('generate-image-btn');
+     if(sendButton) sendButton.disabled = true; // 禁用发送按钮
+     if(generateImageBtn) generateImageBtn.disabled = true; // 禁用图片生成按钮
+
+     try {
+         // 2. 添加一个占位符消息到 UI，用于显示图片
+         const aiMessageElement = addMessageToUI({ sender: 'ai', content: '正在生成图片...' }, true);
+
+         // 3. 调用 txt2img API
+         const imageUrl = await callTxt2ImgApi(prompt);
+
+         // 4. 将占位符消息内容更新为图片和提示词文本
+         updateMessageWithImage(aiMessageElement, imageUrl, prompt);
+
+         // 5. 将生成的图片信息保存到聊天数据中
+         // 最好修改 messages 数据结构来支持存储图片 URL
+         // 临时方案：添加一个包含图片 URL 的消息对象
+         const aiImageMessage = {
+             sender: 'ai',
+             type: 'image', // 新增类型字段
+             content: prompt, // 可以保存原始提示词
+             url: imageUrl // 保存图片 URL
+         };
+         // 找到之前添加的占位符消息并用实际图片消息替换它
+         const placeholderIndex = currentChat.messages.length -1; // 假设占位符是最后一个AI消息
+          // 或者更精确地查找刚刚添加的“正在生成图片...”消息
+         const placeholderMsg = currentChat.messages.findLast(msg => msg.sender === 'ai' && msg.content === '正在生成图片...');
+         if(placeholderMsg) {
+             placeholderMsg.type = 'image';
+             placeholderMsg.content = prompt;
+             placeholderMsg.url = imageUrl;
+         } else {
+             // 如果找不到占位符，就直接添加新的图片消息
+             currentChat.messages.push(aiImageMessage);
+         }
+
+         saveChatData(chats); // 保存数据
+
+     } catch (error) {
+         console.error("Error generating image:", error);
+         // 在 UI 中找到之前的 AI 消息元素并更新为错误信息
+         const aiMessageElement = document.querySelector('#messages-list .message.ai:last-child');
+         if (aiMessageElement) {
+             const contentElement = aiMessageElement.querySelector('.content');
+             if (contentElement) {
+                 contentElement.textContent = `图片生成失败：${error.message}`;
+                 // 更新聊天数据中的错误消息
+                 const lastAIMessageIndex = currentChat.messages.map(msg => msg.sender).lastIndexOf('ai');
+                  if(lastAIMessageIndex !== -1) {
+                        currentChat.messages[lastAIMessageIndex].content = `图片生成失败：${error.message}`;
+                        currentChat.messages[lastAIMessageIndex].type = 'text'; // 标记为文本类型
+                        delete currentChat.messages[lastAIMessageIndex].url; // 移除 url
+                   } else {
+                       // 这不太可能发生，但作为后备
+                        const errorMessage = { sender: 'ai', content: `图片生成失败：${error.message}`, type: 'text' };
+                        currentChat.messages.push(errorMessage);
+                   }
+                 saveChatData(chats);
+             }
+         } else {
+             // 如果连 AI 消息元素都没找到，直接添加一个新消息
+             const errorMessage = { sender: 'ai', content: `图片生成失败：${error.message}` };
+             currentChat.messages.push(errorMessage);
+             addMessageToUI(errorMessage, true);
+             saveChatData(chats);
+         }
+
+     } finally {
+         // 在 finally 块中确保按钮被启用
+         if(sendButton) sendButton.disabled = false; // 启用发送按钮
+         if(generateImageBtn) generateImageBtn.disabled = false; // 启用图片生成按钮
+     }
 }
 
 
 /**
  * 渲染指定聊天会话的消息列表到 UI
- * ... (保持不变) ...
+ * @param {Array<object>} messages - 要渲染的消息数组
  */
 function renderMessages(messages) {
     const messagesListElement = document.getElementById('messages-list');
-    messagesListElement.innerHTML = '';
+    if (!messagesListElement) {
+        console.error("Error: messages list element not found.");
+        return;
+    }
+    messagesListElement.innerHTML = ''; // 清空现有消息
+
+    if (!Array.isArray(messages)) {
+        console.error("renderMessages expects an array, but received:", messages);
+        return;
+    }
 
     messages.forEach(message => {
-        // 在渲染时，需要根据消息内容判断是文本、图片还是音频
-        // 假设对于图片消息，content 以 "[图片生成]" 开头，对于音频消息以 "[音频生成]" 开头
-        // 或者更健壮的方式是修改消息数据结构，例如 { type: 'text', content: '...' } 或 { type: 'image', url: '...' }
-        // 为了与现有结构兼容，我们暂时使用前缀判断
+        // 根据消息的 type 或 sender/content 结构来判断如何渲染
+        const messageElement = addMessageToUI(message, false); // 先添加基础消息元素
+
         if (message.sender === 'ai') {
-             if (message.content.startsWith('[图片生成] ')) {
-                 // 这是之前保存的图片生成消息，实际图片 URL 可能没有保存
-                 // 如果需要重新渲染图片，需要存储 URL 或重新生成？不建议重新生成
-                 // 更好的做法是消息数据结构包含图片URL
-                 // 临时方案：只显示文本描述，或者在 UI 层根据描述查找/加载图片 (如果可能)
-                 // 最佳方案：修改消息数据结构
-                 addMessageToUI(message, false); // 暂时作为文本消息渲染
-                 // TODO: 实现根据保存的 URL 渲染图片
-             } else if (message.content.startsWith('[音频生成] ')) {
-                 // 临时方案：只显示文本描述
-                 addMessageToUI(message, false); // 暂时作为文本消息渲染
-                 // TODO: 实现根据保存的 URL 渲染音频播放器
-             } else {
-                 // 常规文本消息或流式保存的完整文本
-                 addMessageToUI(message, false);
-             }
-        } else {
-             // 用户消息
-             addMessageToUI(message, false);
+            if (message.type === 'image' && message.url) {
+                // 如果消息是图片类型，并且有 URL
+                updateMessageWithImage(messageElement, message.url, message.content || ''); // 使用 content 作为 altText
+            } else if (message.type === 'audio' && message.url) {
+                // 如果消息是音频类型，并且有 URL
+                 updateMessageWithAudio(messageElement, message.url, message.content || ''); // 使用 content 作为描述
+            } else {
+                 // 默认作为文本消息渲染 (已经在 addMessageToUI 中处理了)
+                 // 对于从流中保存的完整文本，没有 type 字段，也会在这里渲染
+            }
         }
+        // 用户消息已经在 addMessageToUI 中渲染了
     });
 
+    // 滚动到底部
     messagesListElement.scrollTop = messagesListElement.scrollHeight;
 }
 
 // 导出核心函数
-export { currentChatId, chats, sendMessage, renderMessages };
+export { currentChatId, chats, sendMessage, renderMessages, generateImage }; // 导出 generateImage 函数

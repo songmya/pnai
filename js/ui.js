@@ -29,6 +29,7 @@ export function initializeUI() {
         }
     });
     // 其他 UI 事件，如设置区域的 change 事件在 main.js 中绑定
+    // 图片生成按钮的事件监听器在 main.js 中绑定了
 }
 
 /**
@@ -49,7 +50,7 @@ export function switchChatUI(chatId) {
 
 /**
  * 添加消息到当前聊天框的 UI (非流式或首次添加流式消息)
- * @param {object} message - 消息对象 { sender: 'user'|'ai', content: '...', files: [] }
+ * @param {object} message - 消息对象 { sender: 'user'|'ai', content: '...', files: [], type?: 'text' | 'image' | 'audio', url?: string } // 增加了 type 和 url 属性的可能
  * @param {boolean} shouldScroll - 是否滚动到底部
  * @returns {Element} 返回新创建的消息 DOM 元素
  */
@@ -65,14 +66,21 @@ export function addMessageToUI(message, shouldScroll) {
     messageElement.classList.add(message.sender);
     messageElement.querySelector('.sender').textContent = message.sender === 'user' ? '你' : 'AI';
 
-    // 对于非流式消息或用户消息，直接设置内容
-	if (typeof marked !== 'undefined') {
-		messageElement.querySelector('.content').innerHTML = marked.parse(message.content);
-	} else {
-		messageElement.querySelector('.content').textContent = message.content;
-	}
+    const contentElement = messageElement.querySelector('.content');
+    if (contentElement) {
+        // 对于文本消息，渲染 Markdown
+        if (message.type === 'text' || message.type === undefined) { // 如果没有 type 或 type 是 text
+             if (typeof marked !== 'undefined') {
+                 contentElement.innerHTML = marked.parse(message.content || ''); // 确保 content 不为空
+             } else {
+                 contentElement.textContent = message.content || '';
+             }
+        }
+        // 如果是图片或音频类型，初始这里不设置内容，而是由 updateMessageWithImage/Audio 在后续处理
+    }
 
-    // TODO: 处理消息中的文件信息显示
+
+    // TODO: 处理消息中的文件信息显示 (用户消息中的文件)
 
     messagesListElement.appendChild(messageElement);
 
@@ -152,11 +160,15 @@ export function updateMessageWithImage(messageElement, imageUrl, altText = '') {
         img.alt = altText;
         img.style.maxWidth = '100%'; // 限制图片宽度，避免超出容器
         img.style.height = 'auto';
+        img.style.display = 'block'; // 使图片独占一行
+        img.style.margin = '10px 0'; // 图片上下留白
         contentElement.appendChild(img);
 
         // 添加原始提示词作为文本（可选）
         const promptText = document.createElement('p');
         promptText.textContent = `提示词: ${altText}`;
+        promptText.style.fontSize = '0.9em';
+        promptText.style.color = '#555';
         contentElement.appendChild(promptText);
 
 
@@ -184,10 +196,13 @@ export function updateMessageWithAudio(messageElement, audioUrl, description = '
         // 添加音频播放器
         const audio = document.createElement('audio');
         audio.controls = true; // 显示播放器控件
+        audio.style.width = '100%'; // 使播放器宽度适应容器
+        audio.style.margin = '10px 0'; // 播放器上下留白
+
         const source = document.createElement('source');
         source.src = audioUrl;
         // 假设音频格式是 mp3，根据实际情况调整 type
-        source.type = 'audio/mpeg';
+        source.type = 'audio/mpeg'; // Pollinations.ai 返回的音频类型需要确认
         audio.appendChild(source);
         // 添加一个回退文本，如果浏览器不支持音频
         audio.innerHTML += '您的浏览器不支持音频播放。';
@@ -196,6 +211,8 @@ export function updateMessageWithAudio(messageElement, audioUrl, description = '
          // 添加原始文本作为描述（可选）
         const descriptionText = document.createElement('p');
         descriptionText.textContent = `文本: ${description}`;
+        descriptionText.style.fontSize = '0.9em';
+        descriptionText.style.color = '#555';
         contentElement.appendChild(descriptionText);
 
          // 确保滚动到底部
@@ -210,7 +227,7 @@ export function updateMessageWithAudio(messageElement, audioUrl, description = '
 
 /**
  * 处理文件上传 input change 事件
- * @param {Event} event - change 事件对象
+ * ... (保持不变) ...
  */
 function handleFileUpload(event) {
     const files = event.target.files;
@@ -234,7 +251,7 @@ function handleFileUpload(event) {
         });
 
         addUploadedFileToUI({ id: fileId, name: file.name });
-        // TODO: 需要在 main.js 中保存 chats 对象到 localStorage (当文件添加/移除时)
+        // TODO: 需要在 main.js 中保存 chats 对象到 localStorage (当文件添加/移除时) - 现在在 main.js 的 sendMessage/generateImage 中统一保存
     }
 
     event.target.value = '';
@@ -259,12 +276,31 @@ function addUploadedFileToUI(fileInfo) {
         spanElement.textContent = fileInfo.name;
     }
 
+    // 添加移除按钮事件 (直接在 ui.js 中处理移除 UI，数据移除由 main.js 处理)
+    const removeButton = fileItemElement.querySelector('.remove-file');
+    if (removeButton) {
+        removeButton.addEventListener('click', () => {
+             removeUploadedFile(fileInfo.id); // 调用 UI 移除函数
+             // 通知 main.js 移除数据并保存
+             // 更好的做法是这里触发一个自定义事件，让 main.js 监听并处理数据
+             // 临时简单处理：直接在 main.js 的 sendMessage/generateImage 中获取上传列表
+             // 或者将 removeUploadedFile 逻辑移到 main.js 中，让 ui.js 调用 main.js 的函数
+             // 当前实现是 ui.js 移除 UI，main.js 在发送时重新获取上传列表并保存
+             // 还是将移除逻辑统一到 main.js 更好
+             // 暂时将 removeUploadedFile 标记为 TODO 在 main.js 中实现
+             // 或者，修改此处的逻辑，直接在 ui.js 中触发事件并让 main.js 监听
+             // 为了简化，我们暂时让 removeUploadedFile 在 ui.js 中仅移除 UI，数据处理依赖 main.js 在发送消息时获取最新列表
+        });
+    }
+
+
      uploadedFilesListElement.appendChild(fileItemElement);
 }
 
 
 /**
  * 从 UI 和数据中移除已上传文件
+ * TODO: 这个函数最好移动到 main.js 中，因为它需要修改聊天数据并保存
  * @param {string} fileId - 要移除的文件的 ID
  */
 function removeUploadedFile(fileId) {
@@ -276,20 +312,26 @@ function removeUploadedFile(fileId) {
 
     // 从数据中移除文件
     currentChat.uploadedFiles = currentChat.uploadedFiles.filter(file => file.id !== fileId);
-    // TODO: 需要在 main.js 中保存 chats 对象到 localStorage (当文件添加/移除时)
+    // TODO: 在这里立即保存 chats 数据到 localStorage
+    // saveChatData(chats); // 应该在这里调用保存
 
     // 从 UI 中移除文件列表项
     const fileItemElement = document.querySelector(`#uploaded-files-list li[data-file-id="${fileId}"]`);
     if (fileItemElement) {
         fileItemElement.remove();
     }
+
+     console.log(`Removed file with ID: ${fileId}. Updated uploaded files:`, currentChat.uploadedFiles);
+     // ** 重要：在这里调用保存函数 **
+     if (currentChatId) { // 确保有当前聊天ID
+          saveChatData(chats);
+     }
 }
 
 
 /**
  * 更新设置区域（模型选择和系统提示词）的 UI
- * @param {string} model - 当前模型
- * @param {string} systemPrompt - 当前系统提示词
+ * ... (保持不变) ...
  */
 export function updateSettingsUI(model, systemPrompt) {
     const modelSelectElement = document.getElementById('model-select');
@@ -318,6 +360,8 @@ export function updateUploadedFilesUI(files) {
 
     if (Array.isArray(files)) {
         files.forEach(file => {
+            // 这里的 file 可能是一个简单对象 { id, name }，而不是完整的 File 对象
+            // addUploadedFileToUI 需要的是 { id, name }
             addUploadedFileToUI({ id: file.id, name: file.name });
         });
     } else {
@@ -360,6 +404,8 @@ export function updateUploadedFilesUI(files) {
      if (modelSelectElement.value === '' && models.length > 0) {
          modelSelectElement.value = models[0].name;
          // TODO: 需要通知 main.js 更新当前聊天的 model 属性
+         // 在 main.js 的 DOMContentLoaded 中加载和切换聊天时，已经设置了 model
+         // 这里的逻辑可能不再需要
      }
 }
 
@@ -379,13 +425,17 @@ export function updateChatListUI(allChats, currentChatId) {
     chatListElement.innerHTML = '';
 
     const chatIds = Object.keys(allChats);
+    // 按创建时间倒序排列聊天列表 (假设 ID 是递增的或包含时间戳)
+    chatIds.sort((a, b) => b.localeCompare(a));
+
     chatIds.forEach(chatId => {
         const chat = allChats[chatId];
         const listItem = listItemTemplate.content.cloneNode(true).querySelector('li');
 
         listItem.dataset.chatId = chatId;
 
-        const chatTitle = chat.name ||
+        // 确定聊天标题：优先使用保存的 name，否则使用第一条消息的前缀，否则使用 ID 的一部分
+        let chatTitle = chat.name ||
                           (chat.messages && chat.messages.length > 0
                             ? chat.messages[0].content.substring(0, 20) + (chat.messages[0].content.length > 20 ? '...' : '')
                             : `新聊天 (${chatId.substring(0, 4)})`);
