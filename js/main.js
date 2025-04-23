@@ -866,4 +866,4 @@ function renderMessages(messages) {
 
 // 导出核心函数
 // 确保 clearCurrentChatContext 和 toggleTheme 被导出，因为它们由 ui.js 调用
-export { currentChatId, chats, sendMessage, renderMessages, generateImage, clearCurrentChatContext, toggleTheme };
+export { currentChatId, chats, sendMessage, renderMessages, generateImage, toggleTheme };
