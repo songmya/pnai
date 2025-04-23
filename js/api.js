@@ -264,4 +264,4 @@ export async function callTxt2AudioApi(prompt, voice) {
 // function readFileAsBase64(file) { ... }
 
 // 导出新的 API 调用函数
-export { fetchModels, callAIApi, callTxt2ImgApi, callTxt2AudioApi };
+
