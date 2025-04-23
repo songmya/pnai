@@ -160,39 +160,41 @@ body {
     overflow-y: auto;
     max-height: 50%;
      transition: border-color 0.3s ease;
-     position: relative; /* ** 使内部绝对定位的元素相对于此容器定位 ** */
-     padding-top: 40px; /* ** 为主题切换按钮留出空间 ** */
+     position: relative;
+     /* ** 调整 padding-top，只为设置内容留出空间，h2 不再占用高度 ** */
+     padding-top: 20px; /* 例如，与左右 padding 保持一致 */
 }
 
 .sidebar-settings h2 {
-     margin-top: 0;
-     margin-bottom: 10px;
-     font-size: 1.2em;
-     border-bottom: 1px solid var(--sidebar-h2-border);
-     padding-bottom: 10px;
-     /* ** 定位 H2 标题，避免被按钮遮挡 ** */
+     /* ** 调整 H2 样式，使其不占用空间，只作为背景或边框的参考 ** */
      position: absolute;
-     top: 10px;
-     left: 20px;
-     right: 20px; /* 让标题宽度适应容器 */
-     padding-right: 50px; /* 为右侧按钮留出空间 */
+     top: 0; /* 顶部对齐 */
+     left: 0; /* 左侧对齐 */
+     right: 0; /* 右侧对齐 */
+     height: 40px; /* 例如，设置一个高度 */
+     line-height: 40px; /* 使文本垂直居中，虽然现在没有文本 */
+     padding: 0 20px; /* 左右内边距 */
+     margin: 0; /* 移除 margin */
+     font-size: 0; /* ** 将字体大小设为 0，隐藏文本但保留元素的尺寸和边框 ** */
+     border-bottom: 1px solid var(--sidebar-h2-border);
      box-sizing: border-box;
-     background-color: var(--sidebar-bg); /* 确保背景色覆盖滚动区域 */
-     z-index: 10; /* 确保在滚动内容之上 */
+     background-color: var(--sidebar-bg);
+     z-index: 10;
+     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .sidebar-settings .settings-group {
     margin-bottom: 15px;
     display: flex;
     flex-direction: column;
-    /* ** 调整 settings-group 的 margin-top，避免被 H2 遮挡 ** */
-     margin-top: 0; /* 重置默认 margin-top */
-     padding-top: 0; /* 重置默认 padding-top */
+    /* ** 调整 settings-group 的 margin-top，使其从 H2 下方开始 ** */
+     margin-top: 40px; /* 例如，H2 的高度 */
+     padding-top: 0;
 }
 
 /* 第一个 settings-group 需要额外的顶部空间 */
 .sidebar-settings .settings-group:first-of-type {
-     margin-top: 0; /* H2 已经占用了空间 */
+     margin-top: 40px; /* 确保第一个 settings-group 在 H2 下方 */
      padding-top: 0;
 }
 
@@ -326,24 +328,24 @@ body {
 
 /* 主题切换按钮样式 (小圆圈图标) */
 #theme-toggle-btn {
-    position: absolute; /* ** 绝对定位 ** */
-    top: 10px; /* ** 距离顶部距离 ** */
-    right: 10px; /* ** 距离右侧距离 ** */
-    width: 30px; /* ** 设置宽度和高度，使其成为圆形 ** */
+    position: absolute;
+    top: 5px; /* ** 调整距离顶部距离，使其更靠近顶边框 ** */
+    right: 5px; /* ** 调整距离右侧距离，使其更靠近右边框 ** */
+    width: 30px;
     height: 30px;
-    border-radius: 50%; /* ** 使其成为圆形 ** */
-    padding: 0; /* ** 移除内边距 ** */
-    display: flex; /* ** 使图标居中 ** */
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
     /* 使用 CSS 变量 */
     background-color: var(--theme-toggle-bg);
     color: var(--theme-toggle-text);
-    border: 1px solid var(--theme-toggle-text); /* 添加一个细边框 */
-    font-size: 1em; /* 图标大小 */
-    z-index: 11; /* 确保在 H2 之上 */
-    box-shadow: 0 2px 4px var(--main-content-shadow); /* 添加阴影 */
+    border: 1px solid var(--theme-toggle-text);
+    font-size: 1em;
+    z-index: 11;
+    box-shadow: 0 2px 4px var(--main-content-shadow);
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -353,7 +355,7 @@ body {
 }
 
 #theme-toggle-btn i {
-    pointer-events: none; /* 防止点击图标时也触发按钮事件 */
+    pointer-events: none;
 }
 
 
@@ -442,7 +444,7 @@ body {
     display: flex;
     align-items: flex-end;
     padding: 15px;
-    border-top: 1px solid var(--sidebar-border); /* 使用侧边栏边框颜色，保持一致 */
+    border-top: 1px solid var(--sidebar-border);
     /* 使用 CSS 变量 */
     background-color: var(--input-area-bg);
     gap: 10px;
