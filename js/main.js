@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. 绑定新建聊天按钮事件
     document.getElementById('new-chat-btn').addEventListener('click', createNewChat);
+	console.log('Binding new chat button event');
 
     // 4. 绑定侧边栏聊天列表点击事件 (通过事件委托)
     document.getElementById('chat-list').addEventListener('click', (event) => {
