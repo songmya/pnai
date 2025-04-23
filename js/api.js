@@ -69,55 +69,55 @@ export async function callAIApi(prompt, systemPrompt, model, uploadedFiles, chat
 
         console.log("Calling Pollinations.ai Txt2Txt API with URL:", url); // 调试输出 URL
 
-        // Pollinations.ai 的文本生成 GET 端点通常使用 GET 方法
         const response = await fetch(url, {
             method: 'GET', // GET 请求
             headers: {
                 // Pollinations.ai GET 端点可能不需要特定的 Content-Type 或 API Key headers
                 // 如果您有 API Key 并需要添加，请查阅其文档
             },
-             // GET 请求没有 body
         });
 
         if (!response.ok) {
-             // 检查非 2xx 状态码
              const errorText = await response.text();
              console.error(`Error calling AI API: ${response.status} ${response.statusText}`, errorText);
              if (onError) {
-                 // 尝试解析错误响应是否是 JSON，如果不是，显示原始文本
                  try {
                      const errorJson = JSON.parse(errorText);
                      const errorMessage = errorJson.detail || errorJson.error || errorText;
                      onError(`API 请求失败：${response.status} ${response.statusText} - ${errorMessage}`);
                  } catch (e) {
-                     // 如果不是 JSON，显示原始文本，限制长度
                      onError(`API 请求失败：${response.status} ${response.statusText} - ${errorText.substring(0, 200)}...`);
                  }
              }
              return;
         }
 
-        // **处理流式文本回复**
-        // Pollinations.ai 的 GET 端点通常直接返回文本流，而不是 SSE 或 JSON 对象流
+        // **处理流式 SSE (Server-Sent Events) 响应**
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = '';
+        let buffer = ''; // 用于存储不完整的行
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) {
+                // 处理缓冲区中剩余的任何数据
+                if (buffer.length > 0) {
+                    processStreamChunk(buffer, onData);
+                }
                 if (onComplete) onComplete(); // 流结束
                 break;
             }
 
-            // 将 Uint8Array 转换为字符串
+            // 将 Uint8Array 转换为字符串并添加到缓冲区
             buffer += decoder.decode(value, { stream: true });
 
-            // 对于简单的文本流，每次读取到数据就传递给 onData 回调
-            // Pollinations.ai 的这个 GET 端点可能就是简单的文本流
-            if (buffer.length > 0) {
-                if (onData) onData(buffer);
-                buffer = ''; // 处理后清空缓冲区
+            // 按换行符分割缓冲区
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // 将最后一个（可能不完整）行放回缓冲区
+
+            // 处理完整的行
+            for (const line of lines) {
+                processStreamChunk(line, onData);
             }
         }
 
@@ -126,6 +126,54 @@ export async function callAIApi(prompt, systemPrompt, model, uploadedFiles, chat
         if (onError) onError(`发生网络或未知错误：${error.message}`);
      }
 }
+
+/**
+ * 处理 SSE 流的单个数据块
+ * @param {string} chunk - 单个数据行
+ * @param {function} onData - 回调函数，用于处理提取的文本
+ */
+function processStreamChunk(chunk, onData) {
+     // Pollinations.ai 的 SSE 格式是 `data: {"...}\n\n` 或 `data: [DONE]`
+     // 我们关注以 `data: ` 开头的行
+     if (chunk.startsWith('data: ')) {
+         const data = chunk.substring(6).trim(); // 移除 "data: " 前缀并去除首尾空格
+
+         if (data === '[DONE]') {
+             // 流结束标志，由 while (true) 中的 done 已经处理了 onComplete
+             return;
+         }
+
+         try {
+             const json = JSON.parse(data);
+
+             // 提取文本内容
+             // 检查 json 结构是否符合预期 (有 choices 数组，数组元素有 delta 对象，delta 有 content)
+             if (json.choices && Array.isArray(json.choices) && json.choices.length > 0) {
+                 const choice = json.choices[0]; // 通常只有一个候选项
+                 if (choice.delta && choice.delta.content !== undefined) {
+                     // 将新的文本块传递给 UI
+                     if (onData) onData(choice.delta.content);
+                 }
+             } else {
+                 // 打印出非预期格式的 JSON，以便调试
+                 console.warn("Received unexpected JSON format in stream:", json);
+             }
+
+         } catch (e) {
+             // 如果不是有效的 JSON，可能是其他控制信息或格式错误
+             console.warn("Could not parse JSON from stream chunk:", chunk, e);
+             // 可以选择将原始数据也传递给 onData 或忽略
+             // if (onData) onData(chunk + '\n'); // 显示原始行
+         }
+     } else if (chunk.trim().length > 0) {
+         // 处理非 data: 开头的非空行，可能是一些头部信息或错误
+         console.warn("Received non-data line in stream:", chunk);
+         // 可以选择将原始数据也传递给 onData 或忽略
+         // if (onData) onData(chunk + '\n'); // 显示原始行
+     }
+     // 忽略空行
+}
+
 
 /**
  * 调用 Pollinations.ai API 生成图片 (txt2img)
@@ -196,3 +244,4 @@ export async function callTxt2AudioApi(prompt, voice) {
 
 
 // 导出 API 调用函数
+
