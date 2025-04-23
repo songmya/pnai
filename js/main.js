@@ -1,4 +1,4 @@
-import { initializeUI, createNewChatUI, switchChatUI, addMessageToUI, updateSettingsUI, updateUploadedFilesUI } from './ui.js';
+import { initializeUI, switchChatUI, addMessageToUI, updateSettingsUI, updateUploadedFilesUI } from './ui.js';
 import { callAIApi } from './api.js';
 import { saveChatData, loadChatData, deleteChatData } from './storage.js';
 import { generateUniqueId } from './utils.js';
