@@ -2,6 +2,7 @@
 
 import { sendMessage, currentChatId, chats, clearCurrentChatContext, toggleTheme } from './main.js';
 import { generateUniqueId } from './utils.js';
+import { saveChatData } from './storage.js'; // 导入 saveChatData 函数
 
 /**
  * 初始化 UI 事件监听器
@@ -167,7 +168,7 @@ export function updateStreamingMessageUI(messageElement, content) {
 // ** 流式消息函数结束 **
 
 
-// ** 新增：添加代码块复制按钮和逻辑 **
+// ** 添加代码块复制按钮和逻辑 **
 /**
  * 在 Markdown 渲染后的代码块中添加复制按钮
  * @param {Element} containerElement - 包含 Markdown 内容的 DOM 元素 (.content)
@@ -334,9 +335,13 @@ function handleFileUpload(event) {
 
     event.target.value = ''; // 清空文件输入框，以便再次选择相同文件能触发 change 事件
      // ** 重要：在这里调用保存函数 **
-     if (currentChatId) { // 确保有当前聊天ID
-          saveChatData(chats);
-     }
+     // ui.js 不应该直接访问 chats 对象，保存逻辑应该在 main.js 中处理
+     // 移除这里的 saveChatData(chats); 调用，由 main.js 监听并保存或在文件操作完成后统一保存
+     // if (currentChatId) { // 确保有当前聊天ID
+     //      saveChatData(chats); // 移除此行
+     // }
+      // 通知 main.js 文件列表已更新，由 main.js 保存
+      document.dispatchEvent(new CustomEvent('filesUpdated', { detail: { chatId: currentChatId, files: currentChat.uploadedFiles } }));
 }
 
 /**
@@ -369,14 +374,17 @@ function addUploadedFileToUI(fileInfo) {
  * @param {string} fileId - 要移除的文件的 ID
  */
 function removeUploadedFile(fileId) {
-    if (!currentChatId || !chats[currentChatId]) {
+     if (!currentChatId || !chats[currentChatId]) {
          return;
     }
 
     const currentChat = chats[currentChatId];
 
     // 从数据中移除文件
+    const initialFileCount = currentChat.uploadedFiles.length;
     currentChat.uploadedFiles = currentChat.uploadedFiles.filter(file => file.id !== fileId);
+    const fileRemoved = currentChat.uploadedFiles.length < initialFileCount;
+
 
     // 从 UI 中移除文件列表项
     const fileItemElement = document.querySelector(`#uploaded-files-list li[data-file-id="${fileId}"]`);
@@ -386,8 +394,13 @@ function removeUploadedFile(fileId) {
 
      console.log(`Removed file with ID: ${fileId}. Updated uploaded files:`, currentChat.uploadedFiles);
      // ** 重要：在这里调用保存函数 **
-     if (currentChatId) { // 确保有当前聊天ID
-          saveChatData(chats);
+     // ui.js 不应该直接访问 chats 对象并保存。通知 main.js 文件已移除
+     // 移除这里的 saveChatData(chats); 调用
+     // if (currentChatId) { // 确保有当前聊天ID
+     //      saveChatData(chats); // 移除此行
+     // }
+     if (fileRemoved && currentChatId) {
+          document.dispatchEvent(new CustomEvent('filesUpdated', { detail: { chatId: currentChatId, files: currentChat.uploadedFiles } }));
      }
 }
 
@@ -526,6 +539,17 @@ export function updateChatListUI(allChats, currentChatId) {
 }
 
 /**
+ * 清空当前聊天窗口的消息列表 UI
+ * ** 导出此函数 **
+ */
+export function clearMessagesUI() {
+    const messagesListElement = document.getElementById('messages-list');
+    if (messagesListElement) {
+        messagesListElement.innerHTML = '';
+    }
+}
+
+/**
  * 更新主题切换按钮的文本和图标
  * @param {string} theme - 当前主题 ('light' or 'dark')
  */
@@ -546,4 +570,7 @@ export function updateThemeToggleButton(theme) {
         // themeToggleBtn.textContent = `切换模式 (当前: ${theme === 'dark' ? '黑夜' : '白天'})`;
     }
 }
+
+// 导出核心函数
+// ** 确保 clearMessagesUI 被导出 **
 
