@@ -456,6 +456,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    /* 添加水平溢出处理 */
+    overflow-x: hidden; /* 隐藏水平溢出，结合换行规则 */
 }
 
 /* 单个消息样式 */
@@ -472,9 +474,14 @@ body {
 }
 
 .message .content {
-    white-space: pre-wrap;
-    word-wrap: break-word;
+    white-space: pre-wrap; /* 允许在空白符处换行 */
+    word-wrap: break-word; /* 强制在长单词或 URL 内部换行 */
+    overflow-wrap: break-word; /* CSS3 替代 word-wrap */
     position: relative;
+    /* 添加水平溢出处理 */
+    overflow-x: hidden; /* 隐藏水平溢出，结合换行规则 */
+    /* 或者设置为 auto，如果希望出现水平滚动条 */
+    /* overflow-x: auto; */
 }
 
 /* 用户消息样式 */
@@ -643,7 +650,11 @@ body {
     border: 1px solid var(--code-border);
     padding: 10px;
     border-radius: 5px;
-    overflow-x: auto;
+    /* 强制代码块内部出现水平滚动条 */
+    overflow-x: auto; /* 允许水平滚动 */
+    white-space: pre; /* 保留原始空白和换行，防止在非空白处强制断开 */
+    word-break: normal; /* 防止在非空白处强制断开 */
+
     position: relative;
     margin-top: 10px;
     margin-bottom: 10px;
@@ -653,6 +664,7 @@ body {
 .message .content pre code {
     font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
     color: var(--message-text-ai);
+    /* 通常不需要在这里设置换行或溢出，由父级 pre 控制 */
 }
 
 .message .content blockquote {
@@ -960,6 +972,14 @@ body {
      #uploaded-files-list {
          font-size: 0.7em;
      }
+
+     /* 媒体查询中针对小屏幕的代码块样式 */
+    .message .content pre {
+         /* 在小屏幕下，如果希望代码块出现水平滚动条 */
+         overflow-x: auto; /* 允许水平滚动 */
+         white-space: pre; /* 保留原始空白和换行 */
+         word-break: normal; /* 防止在非空白处强制断开 */
+    }
 }
 
 /* 适用于屏幕宽度大于等于 768px 的设备 (平板和桌面) */
