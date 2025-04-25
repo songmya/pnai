@@ -342,37 +342,22 @@ function processStreamChunk(chunk, onData) {
  * @returns {Promise<string>} Promise 解析为图片 URL
  */
 export async function callTxt2ImgApi(prompt) {
-    const encodedPrompt = encodeURIComponent(prompt);
-    // 根据 Pollinations.ai 文档，txt2img 端点是 /prompt/{prompt}
-    // 并可通过查询参数控制属性，例如 nologo=true 移除水印
-    const url = `${API_BASE_URL_IMAGE}/prompt/${encodedPrompt}?nologo=true&enhance=true`; // 添加enhance=true可能提高质量
-
-    try {
-        const response = await fetch(url, {
-             method: 'GET' // txt2img 通常是 GET 请求
-        });
-
-        // Pollinations.ai txt2img 成功时直接返回 200 和图片内容，或者 302 重定向到图片 URL
-        // 我们需要处理重定向，或者检查最终响应的 URL
-        // fetch API 默认会跟随重定向，所以 response.url 将是最终的图片 URL
-
-        if (!response.ok) {
-             const errorText = await response.text();
-             console.error(`Error calling Txt2Img API: ${response.status} ${response.statusText}`, errorText);
-             // 尝试解析错误信息，如果不是 JSON 就使用原始文本
-             let errorMessageDetail = errorText;
-             try {
-                 const errorJson = JSON.parse(errorText);
-                 errorMessageDetail = errorJson.detail || errorJson.error || errorText;
-             } catch (e) {
-                 // ignore
-             }
-             throw new Error(`生成图片失败：${response.status} ${response.statusText} - ${errorMessageDetail.substring(0, 200)}...`);
-        }
-
-        // 成功时，response.url 就是图片的最终 URL
-        const imageUrl = response.url;
-        console.log("Generated image URL:", imageUrl);
+    console.log(`Constructing markdown image for prompt: "${prompt}"`);
+    // 检查提示词是否为空或只有空白字符
+    if (!prompt || prompt.trim().length === 0) {
+        console.warn("Txt2Img API called with empty or whitespace prompt. Returning empty string.");
+        // 返回一个空字符串或一个提示信息，取决于前端如何处理
+        // 这里返回一个简单的提示，表示需要有效的提示词
+        return "请提供有效的图片生成提示词。";
+    }
+    // Pollinations.ai 的 image/prompt/{prompt} 服务 URL 结构
+    // 格式：https://pic.941125.eu.org/image/prompt/{encodedPrompt}?nologo=true
+    const encodedPrompt = encodeURIComponent(prompt.trim()); // 对提示词进行编码并去除首尾空白
+    // 构建完整的图片 URL
+    // 注意：这个 URL 是 Pollinations.ai 用于**直接访问**根据提示词生成的图片的 URL
+    // 它不像传统的 API 请求需要等待生成过程
+    const imageUrl = `${API_BASE_URL_IMAGE}/prompt/${encodedPrompt}?nologo=true`; // 添加enhance=true可能提高质量
+    console.log("Constructed image URL:", imageUrl);
 
         // 额外检查：Pollinations.ai 可能会返回一个表示错误的图片URL
         // 例如包含 "failed" 或特定占位图的 URL。可以根据实际情况添加判断。
