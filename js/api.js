@@ -1,7 +1,7 @@
 // js/api.js
 
 const API_BASE_URL_TEXT = 'https://pic.941125.eu.org/text';
-const API_BASE_URL_IMAGE = 'https://image.pollinations.ai';
+const API_BASE_URL_IMAGE = 'https://pic.941125.eu.org/image';
 
 /**
  * 调用 Pollinations.ai API 获取模型列表
